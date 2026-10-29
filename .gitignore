@@ -1,0 +1,9 @@
+# Family data backups and exports — keep personal data out of the repo
+*.json
+*.ged
+*.gedcom
+family-tree*.png
+family-tree*.svg
+
+# macOS
+.DS_Store

@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Family Tree</title>
+<style>
+:root{--bg:#f6f2ea;--panel:#fffdf8;--ink:#2b2622;--muted:#7a6f64;--line:#cfc3b2;--accent:#8a5a2b;--accent-ink:#fff;--m:#dfe9f3;--f:#f6e1e6;--u:#ece8e1;--danger:#b3261e;--mS:#7fa6cc;--fS:#d08aa0}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1a17;--panel:#262220;--ink:#eee6dc;--muted:#a89c8f;--line:#574d43;--accent:#d49a5c;--accent-ink:#1d1a17;--m:#2a3540;--f:#3f2c32;--u:#34302b;--danger:#f2b8b5;--mS:#6f93b8;--fS:#bd7f93}}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:grid;grid-template-columns:260px 1fr 330px;overflow:hidden}
+h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:600}
+button{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+input,select,textarea{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:inherit;width:100%}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+
+#side{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+#side header{padding:16px 16px 10px}
+#side h1{font-size:21px;margin:0}
+#side .hd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#side .hd .x{font-size:18px;line-height:1;padding:4px 8px}
+body.side-closed{grid-template-columns:1fr 330px}
+body.side-closed #side{display:none}
+#sideOpen{display:none}
+body.side-closed #sideOpen{display:inline-block}
+#search{margin:0 12px 8px;width:auto}
+#list{list-style:none;margin:0;padding:0 6px;overflow:auto;flex:1}
+#list li{padding:6px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+#list li:hover{background:var(--u)}
+#list li.on{background:var(--accent);color:var(--accent-ink)}
+.yr{color:var(--muted);font-size:12px;white-space:nowrap}
+#list li.on .yr{color:inherit;opacity:.85}
+.side-actions{padding:12px;border-top:1px solid var(--line);display:grid;gap:6px}
+.side-actions .two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#status{padding:0 12px 12px;color:var(--muted);font-size:12px}
+#status.warn{color:var(--danger)}
+
+#side .rootpick{margin:12px 0 0}
+#tree{overflow:auto;position:relative;min-height:0}
+#treebar{position:sticky;top:0;left:0;width:max-content;z-index:3;display:flex;gap:6px;padding:12px 12px 0}
+#treebar[hidden]{display:none}
+#treebar .zb{min-width:36px;padding:7px 10px}
+#treebar button{white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+#canvas{position:relative}
+#canvas.blank{display:flex;justify-content:center;padding:40px 16px}
+#canvas:not(.blank) #rows{position:absolute;inset:0}
+#lines{position:absolute;left:0;top:0;pointer-events:none}
+#lines path{fill:none;stroke:var(--line);stroke-width:2}
+#lines path.g{stroke-dasharray:4 4}
+.card{position:absolute;width:150px;height:64px;padding:6px 10px;border-radius:10px;background:var(--u);border:1px solid var(--line);cursor:pointer;text-align:center;display:flex;flex-direction:column;justify-content:center;color:inherit;font:inherit;overflow:hidden}
+.card.s-M{background:var(--m)}
+.card.s-F{background:var(--f)}
+.card .nm{font-weight:600;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .yr{white-space:normal}
+.card.sib{opacity:.8}
+/* Partners who married in (not blood relatives of the main person) */
+.card.inlaw{background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--line);padding-left:8px}
+.card.inlaw.s-M{border-left-color:var(--mS)}
+.card.inlaw.s-F{border-left-color:var(--fS)}
+.card.inlaw .nm{font-style:italic;font-weight:500}
+.card.sib .nm{font-weight:500}
+.card.root{border:2px solid var(--accent)}
+.card.focus{outline:3px solid var(--accent);outline-offset:2px}
+.rootnote{color:var(--accent);font-size:13px;font-weight:600;margin:-6px 0 12px}
+.mk{margin:-6px 0 12px}
+.addons{position:absolute;transform:translateX(-50%);display:flex;gap:4px;z-index:2;white-space:nowrap}
+.addons button{font-size:12px;padding:3px 9px;border-radius:999px;border:1.5px dashed var(--accent);background:var(--panel);color:var(--accent)}
+.addons button:hover{background:var(--accent);color:var(--accent-ink);border-style:solid}
+@keyframes locate{0%,100%{box-shadow:0 0 0 0 transparent}35%{box-shadow:0 0 0 12px color-mix(in srgb,var(--accent) 45%,transparent)}}
+.card.located{animation:locate 1s ease-out 2}
+.hint{background:var(--u);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--muted);margin:0 0 12px}
+.card.ghost{background:transparent;border:1.5px dashed var(--line);color:var(--muted)}
+.card:hover{border-color:var(--accent)}
+.empty{max-width:420px;text-align:center;margin-top:10vh}
+.empty h2{font-size:26px;margin:0 0 8px}
+.empty p{color:var(--muted)}
+.empty .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+#panel{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:16px;min-height:0}
+#panel h2{font-size:21px;margin:0 0 14px}
+.fld{display:grid;gap:3px;margin-bottom:10px}
+.fld span{font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#panel h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 4px}
+.rel{display:flex;align-items:center;gap:8px;padding:3px 0}
+.rel a{color:var(--accent);cursor:pointer;flex:1}
+.rel a:hover{text-decoration:underline}
+.none{color:var(--muted);font-size:13px}
+.x{border:none;background:none;color:var(--muted);padding:2px 6px}
+.x:hover{color:var(--danger)}
+.adds{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px}
+.danger{color:var(--danger);border-color:transparent;background:none;margin-top:22px;padding-left:0}
+.muted{color:var(--muted)}
+
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:20px;width:min(440px,92vw)}
+#full{width:96vw;max-width:96vw;height:92vh;max-height:92vh;padding:0;overflow:hidden}
+#full[open]{display:flex;flex-direction:column}
+.fullbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fullbar h3{margin:0 auto 0 0}
+#fullView{flex:1;overflow:auto;background:#fffdf8}
+#fullView svg{display:block;width:100%;height:auto}
+#fullView.actual svg{width:auto;max-width:none}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+dialog h3{margin:0 0 14px;font-family:Georgia,serif;font-size:19px}
+dialog .or{text-align:center;color:var(--muted);font-size:12px;margin:4px 0 10px}
+dialog menu{display:flex;justify-content:flex-end;gap:8px;padding:0;margin:16px 0 0}
+
+@media (max-width:900px){
+  body{display:block;height:auto;overflow:auto}
+  #side{border-right:none;border-bottom:1px solid var(--line)}
+  #list{max-height:200px}
+  #tree{height:65vh;border-bottom:1px solid var(--line)}
+  #canvas{padding:24px 16px}
+  #panel{border-left:none}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+  <header><div class="hd"><h1>Family Tree</h1><button class="x" data-act="toggleSide" title="Hide this panel">«</button></div>
+    <label class="fld rootpick"><span>Main person (owner of the tree)</span><select id="rootSel"></select></label>
+  </header>
+  <input id="search" type="search" placeholder="Search people…">
+  <ul id="list"></ul>
+  <div class="side-actions">
+    <button class="primary" data-act="new">+ New person</button>
+    <div class="two">
+      <button data-act="exportJson" title="Download a full backup you can import later">Save backup</button>
+      <button data-act="import" title="Load a backup or a GEDCOM file">Open file…</button>
+    </div>
+    <button data-act="exportGed" title="GEDCOM works with Gramps, Ancestry, MyHeritage, FamilySearch and others">Export GEDCOM</button>
+  </div>
+  <div id="status"></div>
+  <input id="file" type="file" accept=".json,.ged,.gedcom,text/plain" hidden>
+</aside>
+
+<main id="tree"><div id="treebar"><button id="sideOpen" data-act="toggleSide" title="Show the people list">☰ People</button><button data-act="center" title="Scroll back to the main person">★ Main person</button><button class="zb" data-act="zoomOut" title="Zoom out (or pinch / Ctrl + scroll)">−</button><button class="zb" data-act="zoomReset" id="zoomLbl" title="Reset to 100%">100%</button><button class="zb" data-act="zoomIn" title="Zoom in">+</button><button data-act="zoomFit" title="Fit the whole tree on screen">Fit</button><button data-act="fullTree" title="Show the whole tree as one picture you can save or print">Full tree</button></div><div id="canvas"><svg id="lines"></svg><div id="rows"></div></div></main>
+
+<section id="panel"></section>
+
+<dialog id="full">
+  <div class="fullbar"><h3>Full family tree</h3>
+    <button data-x="size">Actual size</button>
+    <button data-x="png" class="primary">Save as image</button>
+    <button data-x="svg">Save as SVG</button>
+    <button data-x="print">Print / PDF</button>
+    <button data-x="close">Close</button></div>
+  <div id="fullView"></div>
+</dialog>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h3 id="dTitle"></h3>
+    <div id="dExistWrap">
+      <label class="fld"><span>Someone already in your tree</span>
+        <select id="dExisting"></select></label>
+      <div class="or">— or add a new person —</div>
+    </div>
+    <div id="dNew">
+      <div class="two">
+        <label class="fld"><span>Given names</span><input id="dGiven" autocomplete="off"></label>
+        <label class="fld"><span>Surname</span><input id="dSurname" autocomplete="off"></label>
+      </div>
+      <div class="two">
+        <label class="fld"><span>Sex</span><select id="dSex"><option value="">Unknown</option><option value="M">Male</option><option value="F">Female</option></select></label>
+        <label class="fld"><span>Born</span><input id="dBirth" placeholder="e.g. 1921, abt 1890"></label>
+      </div>
+    </div>
+    <label class="fld" id="dOtherWrap"><span>Other parent</span><select id="dOther"></select></label>
+    <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Add</button></menu>
+  </form>
+</dialog>
+
+<script>
+const KEY = 'familytree.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// root = the main person the tree is drawn from; focus = the person selected for editing.
+let db = { people: {}, families: {}, root: null, focus: null, exportedAt: null };
+try { const s = localStorage.getItem(KEY); if (s) db = Object.assign(db, JSON.parse(s)); } catch (e) {}
+
+let saveFailed = false;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); saveFailed = false; }
+  catch (e) { saveFailed = true; }
+  renderStatus();
+}
+
+// ---------- data helpers ----------
+// A family = up to two partners (a, b) plus their children. Each person is a child in at most one family.
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const P = id => id ? db.people[id] : null;
+const fams = () => Object.values(db.families);
+const parentFam = id => fams().find(f => f.children.includes(id));
+const spouseFams = id => fams().filter(f => f.a === id || f.b === id);
+const partnerOf = (f, id) => f.a === id ? f.b : f.a;
+const yearOf = d => { const m = String(d || '').match(/\d{4}/); return m ? +m[0] : null; };
+const fullName = p => p ? ([p.given, p.surname].filter(Boolean).join(' ') || 'Unnamed') : '';
+const givenOf = p => (p && (p.given || '').split(' ')[0]) || fullName(p);
+function span(p) {
+  const b = yearOf(p.birthDate), d = yearOf(p.deathDate);
+  if (b && d) return `${b} – ${d}`;
+  if (b) return `b. ${b}`;
+  if (d) return `d. ${d}`;
+  return '';
+}
+const sortByBirth = ids => [...ids].sort((x, y) => (yearOf(P(x).birthDate) ?? 1e9) - (yearOf(P(y).birthDate) ?? 1e9));
+const sortedPeople = () => Object.values(db.people).sort((x, y) =>
+  (x.surname || '').localeCompare(y.surname || '') || (x.given || '').localeCompare(y.given || ''));
+function orderedSlots(f) { // father-ish first, mother-ish second
+  let [x, y] = [f.a, f.b];
+  if ((P(y)?.sex === 'M' && P(x)?.sex !== 'M') || (P(x)?.sex === 'F' && P(y)?.sex !== 'F')) [x, y] = [y, x];
+  return [x, y];
+}
+function newFam(a, b, children) { const f = { id: uid('f'), a, b, children }; db.families[f.id] = f; return f; }
+function createPerson(data) {
+  const p = { id: uid('p'), given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '', ...data };
+  db.people[p.id] = p; return p.id;
+}
+
+// Keep the data consistent after every change.
+function normalize() {
+  for (const f of fams()) {
+    if (!P(f.a)) f.a = null;
+    if (!P(f.b)) f.b = null;
+    if (f.a === f.b) f.b = null;
+    f.children = [...new Set(f.children.filter(c => P(c) && c !== f.a && c !== f.b))];
+    if (!f.a && f.b) { f.a = f.b; f.b = null; }
+  }
+  const seen = {};
+  for (const f of fams()) { // merge duplicate couples
+    if (!f.a || !f.b) continue;
+    const k = [f.a, f.b].sort().join('|');
+    if (seen[k]) { seen[k].children = [...new Set([...seen[k].children, ...f.children])]; delete db.families[f.id]; }
+    else seen[k] = f;
+  }
+  const owned = new Set();
+  for (const f of fams()) f.children = f.children.filter(c => { if (owned.has(c)) return false; owned.add(c); return true; });
+  for (const f of fams()) if ((f.a ? 1 : 0) + (f.b ? 1 : 0) + f.children.length < 2) delete db.families[f.id];
+  if (db.root && !P(db.root)) db.root = null;
+  if (db.focus && !P(db.focus)) db.focus = null;
+  if (!db.root) db.root = db.focus || sortedPeople()[0]?.id || null;
+  if (!db.focus) db.focus = db.root;
+}
+
+function mutate(fn, recenter) { fn(); normalize(); save(); renderAll(recenter); }
+
+// ---------- add-person dialog ----------
+let pending = null;
+function openAdd(o) {
+  pending = o;
+  $('#dTitle').textContent = o.title;
+  $('#dExistWrap').hidden = !!o.newOnly || Object.keys(db.people).length === 0;
+  $('#dExisting').innerHTML = '<option value="">— choose —</option>' + sortedPeople()
+    .filter(p => !(o.exclude || []).includes(p.id))
+    .map(p => `<option value="${p.id}">${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('');
+  $('#dGiven').value = ''; $('#dSurname').value = o.surname || ''; $('#dSex').value = o.sex || ''; $('#dBirth').value = '';
+  $('#dOtherWrap').hidden = !o.others;
+  if (o.others) {
+    $('#dOther').innerHTML = o.others.map(x => `<option value="${x.value}">${esc(x.label)}</option>`).join('');
+    $('#dOther').value = o.otherDefault || o.others[0].value;
+  }
+  $('#dlg').returnValue = '';
+  $('#dlg').showModal();
+  $('#dGiven').focus();
+}
+$('#dExisting').addEventListener('change', e => { $('#dNew').style.opacity = e.target.value ? .4 : 1; });
+$('#dlg').addEventListener('close', () => {
+  const o = pending; pending = null; $('#dNew').style.opacity = 1;
+  if (!o || $('#dlg').returnValue !== 'ok') return;
+  let id = $('#dExisting').value;
+  const given = $('#dGiven').value.trim(), surname = $('#dSurname').value.trim();
+  if (!id && !given && !surname) return alert('Please enter a name, or choose someone already in your tree.');
+  mutate(() => {
+    if (!id) id = createPerson({ given, surname, sex: $('#dSex').value, birthDate: $('#dBirth').value.trim() });
+    o.onPick(id, $('#dOther').value);
+  });
+  // Jump to the person just added (if they're drawn in the tree) so you can keep building from them.
+  if (shownIds.has(id)) locate(id);
+  else { flash = scrollTo = db.focus; renderTree(); }
+});
+
+// ---------- relationship actions ----------
+function moveOutOfParents(id, target) {
+  const ex = parentFam(id);
+  if (!ex || ex === target) return true;
+  if (!confirm(`${fullName(P(id))} is already listed with other parents. Move them?`)) return false;
+  ex.children = ex.children.filter(c => c !== id);
+  return true;
+}
+function addParent(childId, role) {
+  const c = P(childId), pf = parentFam(childId);
+  if (pf && pf.a && pf.b) return alert(`${fullName(c)} already has two parents listed.`);
+  openAdd({
+    title: `Add ${role} of ${fullName(c)}`,
+    sex: role === 'father' ? 'M' : role === 'mother' ? 'F' : '',
+    surname: role === 'father' ? c.surname : '',
+    exclude: [childId],
+    onPick(id) {
+      const f = parentFam(childId) || newFam(null, null, [childId]);
+      if (!f.a) f.a = id; else if (!f.b) f.b = id;
+    }
+  });
+}
+function addSpouse(id) {
+  const p = P(id);
+  openAdd({
+    title: `Add spouse or partner of ${fullName(p)}`,
+    sex: p.sex === 'M' ? 'F' : p.sex === 'F' ? 'M' : '',
+    exclude: [id],
+    onPick(s) { newFam(id, s, []); }
+  });
+}
+function addChild(id, famId) {
+  const p = P(id), sfs = spouseFams(id);
+  const others = sfs.filter(f => partnerOf(f, id)).map(f => ({ value: f.id, label: fullName(P(partnerOf(f, id))) }));
+  others.push({ value: '', label: 'Unknown / not listed' });
+  openAdd({
+    title: `Add child of ${fullName(p)}`,
+    surname: p.surname,
+    exclude: [id],
+    others, otherDefault: famId,
+    onPick(c, otherFam) {
+      const f = (otherFam && db.families[otherFam]) || sfs.find(f => !partnerOf(f, id)) || newFam(id, null, []);
+      if (moveOutOfParents(c, f)) f.children.push(c);
+    }
+  });
+}
+function fillPartner(famId, id) {
+  const f = db.families[famId], p = P(id);
+  if (!f) return;
+  openAdd({
+    title: `Add the other parent of ${fullName(p)}’s children`,
+    sex: p.sex === 'M' ? 'F' : p.sex === 'F' ? 'M' : '',
+    exclude: [id, ...f.children],
+    onPick(s) { if (!f.a) f.a = s; else if (!f.b) f.b = s; }
+  });
+}
+function addSibling(id) {
+  const p = P(id);
+  openAdd({
+    title: `Add brother or sister of ${fullName(p)}`,
+    surname: p.surname,
+    exclude: [id],
+    onPick(s) {
+      const f = parentFam(id) || newFam(null, null, [id]);
+      if (moveOutOfParents(s, f)) f.children.push(s);
+    }
+  });
+}
+function unlink(spec) {
+  const [kind, fid, pid] = spec.split(':'), f = db.families[fid];
+  if (!f) return;
+  mutate(() => {
+    if (kind === 'parent') { if (f.a === pid) f.a = null; if (f.b === pid) f.b = null; }
+    if (kind === 'spouse') { if (f.a === db.focus) f.b = null; else f.a = null; }
+    if (kind === 'child') f.children = f.children.filter(c => c !== pid);
+  });
+}
+function deletePerson(id) {
+  const p = P(id);
+  if (!confirm(`Delete ${fullName(p)} from your tree? Their relationships will be removed too.`)) return;
+  const pf = parentFam(id), sf = spouseFams(id)[0];
+  const next = (pf && (pf.a || pf.b)) || (sf && (partnerOf(sf, id) || sf.children[0])) || null;
+  mutate(() => { delete db.people[id]; db.focus = next && next !== id ? next : null; }, true);
+}
+function setFocus(id, scroll) { db.focus = id; save(); if (scroll) scrollTo = id; renderAll(); }
+function setRoot(id) { db.root = id; db.focus = id; save(); scrollTo = id; renderAll(); }
+
+// ---------- rendering ----------
+let scrollTo = null, shownIds = new Set(), treeW = 0, treeH = 0, orgX = 0, orgY = 0; // org = where the tree starts on the canvas
+let expanded = null, flash = null; // person whose "+ add" buttons are showing; person to pulse once
+const ZKEY = 'familytree.zoom';
+let zoom = 1;
+// Left panel open/closed, remembered in this browser.
+const SKEY = 'familytree.sideClosed';
+try { if (localStorage.getItem(SKEY) === '1') document.body.classList.add('side-closed'); } catch (e) {}
+function toggleSide() {
+  const closed = document.body.classList.toggle('side-closed');
+  try { localStorage.setItem(SKEY, closed ? '1' : '0'); } catch (e) {}
+  if (P(db.root)) setZoom(zoom); else renderTree(); // re-fit the canvas, keeping the same spot in view
+}
+try { zoom = Math.min(2, Math.max(0.1, +localStorage.getItem(ZKEY) || 1)); } catch (e) {}
+function renderAll(recenter) { if (recenter) scrollTo = db.focus; renderList(); renderTree(); renderPanel(); }
+
+function renderStatus() {
+  const n = Object.keys(db.people).length, el = $('#status');
+  if (saveFailed) { el.className = 'warn'; el.textContent = 'Could not save in this browser — click “Save backup” now!'; return; }
+  el.className = '';
+  const last = db.exportedAt ? new Date(db.exportedAt).toLocaleDateString() : 'never';
+  el.textContent = `${n} ${n === 1 ? 'person' : 'people'} · autosaved in this browser · last backup: ${last}`;
+}
+
+function renderList() {
+  const q = $('#search').value.trim().toLowerCase();
+  const all = sortedPeople();
+  $('#rootSel').disabled = !all.length;
+  $('#rootSel').innerHTML = all.length
+    ? all.map(p => `<option value="${p.id}" ${p.id === db.root ? 'selected' : ''}>${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('')
+    : '<option>— add someone first —</option>';
+  $('#list').innerHTML = all
+    .filter(p => !q || [fullName(p), p.birthPlace, p.deathPlace].join(' ').toLowerCase().includes(q))
+    .map(p => `<li data-id="${p.id}" class="${p.id === db.focus ? 'on' : ''}"><span>${p.id === db.root ? '★ ' : ''}${esc(p.surname ? p.surname + ', ' + (p.given || '') : fullName(p))}</span><span class="yr">${esc(span(p))}</span></li>`)
+    .join('') || `<li class="muted" style="cursor:default">${q ? 'No matches' : 'No one yet'}</li>`;
+}
+
+// ---------- tree layout ----------
+// The tree is drawn from the main person: every known ancestor going up, each shown with their
+// brothers and sisters, and everyone's partners and descendants (cousins, nieces, grandchildren…).
+// Father's side grows to the left, mother's side to the right.
+// Layout works in "blocks": a set of cards with x positions per generation level, plus the
+// left/right edge of each level (its contour), so neighbouring blocks can be packed tightly.
+const W = 150, H = 64, GAP = 14, SIB = 28, GRP = 40, CPL = 30, VGAP = 70, PAD = 56;
+let K = 0, noGhosts = false; // noGhosts: build the tree without the empty "+ Add" boxes
+const blk = () => ({ items: [], edges: [], couples: [], cont: {} });
+function grow(b, l, a, z) { const c = b.cont[l]; b.cont[l] = c ? [Math.min(c[0], a), Math.max(c[1], z)] : [a, z]; }
+function put(b, it) { it.key = 'k' + K++; b.items.push(it); grow(b, it.level, it.x, it.x + W); return it.key; }
+function shift(b, dx) { b.items.forEach(i => i.x += dx); for (const l in b.cont) { b.cont[l][0] += dx; b.cont[l][1] += dx; } }
+function absorb(a, b) { a.items.push(...b.items); a.edges.push(...b.edges); a.couples.push(...b.couples); for (const l in b.cont) grow(a, l, ...b.cont[l]); }
+const itemAt = (b, key) => b.items.find(i => i.key === key);
+const center = (b, l) => (b.cont[l][0] + b.cont[l][1]) / 2;
+const isEmpty = b => !b.items.length;
+
+// Smallest shift that puts block b to the right of block a on every level they share (-Infinity if none).
+function minShift(a, b, gapAt = () => GRP) {
+  let dx = -Infinity;
+  for (const l in b.cont) if (a.cont[l]) dx = Math.max(dx, a.cont[l][1] + gapAt(+l) - b.cont[l][0]);
+  return dx;
+}
+// Append block b to the right of block a (a grows).
+function append(a, b, gapAt) {
+  if (isEmpty(a)) { absorb(a, b); return a; }
+  let dx = minShift(a, b, gapAt);
+  if (dx === -Infinity) {
+    const ends = x => Object.values(x.cont);
+    dx = Math.max(...ends(a).map(c => c[1])) + GRP - Math.min(...ends(b).map(c => c[0]));
+  }
+  shift(b, dx); absorb(a, b); return a;
+}
+const rowGap = level => l => l === level ? SIB : GRP;
+
+// A person with their partners next to them and all their descendants below.
+// An unknown other parent gets an empty "+ Add partner" box.
+function descUnit(pid, level, tone, path, isRoot) {
+  const b = blk(), next = new Set(path).add(pid);
+  const sfs = path.has(pid) || level < -60 ? [] : spouseFams(pid);
+  const key = put(b, { id: pid, cls: isRoot ? 'line root' : tone, level, x: 0 });
+  let x = W + GAP;
+  const fams = [];
+  for (const f of sfs) {
+    const sp = partnerOf(f, pid);
+    if (sp) { const k = put(b, { id: sp, cls: 'spouse ' + tone, level, x }); b.couples.push([key, k]); fams.push({ f, top: [key, k], from: [key, k] }); }
+    else if (noGhosts) { fams.push({ f, top: [key], from: [key] }); continue; }
+    else { const k = put(b, { ghost: true, label: '+ Add partner', act: 'fillPartner', pid, fam: f.id, level, x }); fams.push({ f, top: [key, k], from: [key] }); }
+    x += W + GAP;
+  }
+  if (isRoot && !sfs.length && !noGhosts) { put(b, { ghost: true, label: '+ Add partner', act: 'addSpouse', pid, level, x }); fams.push({ f: null, top: [key], from: [key] }); }
+
+  // Children of each partnership, centered under that couple, never overlapping each other.
+  let below = blk();
+  for (const { f, top, from } of fams) {
+    const kids = blk(), kidKeys = [];
+    for (const c of f ? sortByBirth(f.children) : []) {
+      const u = descUnit(c, level - 1, isRoot ? 'kid' : tone, next);
+      append(kids, u.b, rowGap(level - 1)); kidKeys.push(u.key);
+    }
+    let addKey = null;
+    if (isRoot && !noGhosts) { const g = blk(); addKey = put(g, { ghost: true, label: '+ Add child', act: 'addChild', pid, fam: f ? f.id : '', level: level - 1, x: 0 }); append(kids, g, rowGap(level - 1)); }
+    if (isEmpty(kids)) continue;
+    const mid = top.reduce((s, k) => s + itemAt(b, k).x, 0) / top.length + W / 2;
+    shift(kids, mid - center(kids, level - 1));
+    if (!isEmpty(below)) { const dx = minShift(below, kids); if (dx > 0) shift(kids, dx); }
+    kidKeys.forEach(k => kids.edges.push({ from, to: k }));
+    if (addKey) kids.edges.push({ from, to: addKey, ghost: true });
+    absorb(below, kids);
+  }
+  absorb(b, below);
+  return { b, key };
+}
+
+function ghostUnit(role, pid, level) {
+  const b = blk();
+  const key = put(b, { ghost: true, label: role === 'father' ? '+ Add father' : '+ Add mother', act: 'addParent', role, pid, level, x: 0 });
+  return { b, key, ghost: true };
+}
+
+// Put the parents' lines (father left, mother right) above row block M, keeping M centered
+// under the couple while nothing overlaps.
+function withParents(F, M, childKeys, anchorKey, level, path, ghostFor) {
+  const [fa, mo] = F ? orderedSlots(F) : [null, null];
+  const unit = (pid, side, role) => pid ? lineBlock(pid, side, level + 1, path) : ghostFor && !noGhosts ? ghostUnit(role, ghostFor, level + 1) : null;
+  const L = unit(fa, 'L', 'father'), R = unit(mo, 'R', 'mother');
+  if (!L && !R) return M;
+  const real = [L, R].filter(u => u && !u.ghost).map(u => u.key), ghosts = [L, R].filter(u => u && u.ghost).map(u => u.key);
+  if (real.length) childKeys.forEach(k => M.edges.push({ from: real, to: k }));
+  if (ghosts.length) M.edges.push({ from: ghosts, to: anchorKey, ghost: true });
+  const mc = center(M, level);
+  if (L && R) {
+    const fx = itemAt(L.b, L.key).x + W / 2, mx = itemAt(R.b, R.key).x + W / 2;
+    const a = minShift(L.b, M), c = minShift(M, R.b), b0 = minShift(L.b, R.b, l => l === level + 1 ? CPL : GRP);
+    let r = b0, m = 0;
+    for (let i = 0; i < 40; i++) {
+      m = Math.max(a, (fx + mx + r) / 2 - mc);
+      const r2 = Math.max(b0, m + c, 2 * (m + mc) - fx - mx);
+      if (r2 - r < 0.5) break;
+      r = r2;
+    }
+    m = Math.max(a, (fx + mx + r) / 2 - mc); r = Math.max(r, m + c);
+    shift(M, m); shift(R.b, r);
+    if (real.length === 2) L.b.couples.push([L.key, R.key]);
+    absorb(L.b, M); absorb(L.b, R.b);
+    return L.b;
+  }
+  const U = L || R;
+  let m = itemAt(U.b, U.key).x + W / 2 - mc;
+  m = L ? Math.max(m, minShift(L.b, M)) : Math.min(m, -minShift(M, R.b));
+  shift(M, m); absorb(U.b, M);
+  return U.b;
+}
+
+// One ancestor plus their siblings (with the siblings' families) at `level`, all ancestors above.
+// side 'L' puts the ancestor at the right end of the row (father's side), 'R' at the left end.
+function lineBlock(pid, side, level, path) {
+  const stop = path.has(pid) || level > 60; // guard against loops in bad data
+  const F = stop ? null : parentFam(pid);
+  const sibs = F ? sortByBirth(F.children.filter(c => c !== pid)) : [];
+  const ids = side === 'L' ? [...sibs, pid] : [pid, ...sibs];
+  const M = blk(), keys = [];
+  let key;
+  for (const id of ids) {
+    if (id === pid) { const one = blk(); key = put(one, { id, cls: 'line', level, x: 0 }); append(M, one, rowGap(level)); keys.push(key); }
+    else { const u = descUnit(id, level, 'sib', new Set()); append(M, u.b, rowGap(level)); keys.push(u.key); }
+  }
+  return { b: withParents(F, M, keys, key, level, new Set(path).add(pid), stop ? null : pid), key };
+}
+
+// The main person's generation (siblings and their families, plus the main person's own family
+// below them), with all the ancestry above.
+function rootBlock(root) {
+  const F = parentFam(root), M = blk(), keys = [];
+  let rk;
+  for (const id of F ? sortByBirth(F.children) : [root]) {
+    const u = id === root ? descUnit(root, 0, 'kid', new Set(), true) : descUnit(id, 0, 'sib', new Set([root]));
+    if (id === root) rk = u.key;
+    append(M, u.b, rowGap(0)); keys.push(u.key);
+  }
+  return withParents(F, M, keys, rk, 0, new Set([root]), root);
+}
+
+function renderTree() {
+  const rowsEl = $('#rows'), cv = $('#canvas'), svg = $('#lines'), main = $('#tree'), root = db.root;
+  shownIds = new Set();
+  $('#treebar').hidden = !P(root);
+  if (!P(root)) {
+    cv.classList.add('blank'); cv.style.width = cv.style.height = cv.style.zoom = ''; svg.innerHTML = '';
+    rowsEl.innerHTML = `<div class="empty"><h2>Start your family tree</h2>
+      <p>Add yourself (or anyone) first, then build out parents, partners and children from there.
+      Everything stays on this computer — nothing is uploaded.</p>
+      <div class="btns"><button class="primary" data-act="new">Add the first person</button>
+      <button data-act="import">Open a backup or GEDCOM file</button></div></div>`;
+    return;
+  }
+  cv.classList.remove('blank');
+  K = 0;
+  const b = rootBlock(root);
+  const xs = b.items.map(i => i.x), minX = Math.min(...xs), cw0 = Math.max(...xs) + W - minX;
+  const lv = b.items.map(i => i.level), top = Math.max(...lv), bot = Math.min(...lv);
+  // Free space around the tree (about half a screen each side, more at the bottom) so any card can be scrolled to the middle.
+  const th = (top - bot) * (H + VGAP) + H, viewW = main.clientWidth / zoom, viewH = main.clientHeight / zoom;
+  const mTop = PAD + viewH * 0.4, mBot = PAD + viewH * 0.7, mSide = PAD + viewW * 0.5;
+  const cw = Math.max(cw0 + mSide * 2, viewW), ch = th + mTop + mBot;
+  const ox = (cw - cw0) / 2 - minX, pos = {};
+  orgX = ox + minX; orgY = mTop;
+  for (const it of b.items) pos[it.key] = { x: Math.round(it.x + ox), y: (top - it.level) * (H + VGAP) + mTop };
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px'; cv.style.zoom = zoom;
+  treeW = cw0 + PAD * 2; treeH = th + PAD * 2;
+  $('#zoomLbl').textContent = Math.round(zoom * 100) + '%';
+
+  // A person can appear more than once (e.g. cousins who married); pick one card to locate.
+  const blood = bloodIds(b);
+  const mainKey = {}, rank = it => /root/.test(it.cls) ? 0 : /line/.test(it.cls) ? 1 : 2;
+  for (const it of b.items) if (!it.ghost && (!mainKey[it.id] || rank(it) < rank(itemAt(b, mainKey[it.id])))) mainKey[it.id] = it.key;
+
+  rowsEl.innerHTML = b.items.map(it => {
+    const st = `left:${pos[it.key].x}px;top:${pos[it.key].y}px`;
+    if (it.ghost) return `<button class="card ghost" style="${st}" data-act="${it.act}" data-pid="${it.pid}" title="${esc(it.label.replace('+ ', '') + ' of ' + fullName(P(it.pid)))}"${it.role ? ` data-role="${it.role}"` : ''}${it.fam != null ? ` data-fam="${it.fam}"` : ''}>${it.label}</button>`;
+    shownIds.add(it.id);
+    const p = P(it.id);
+    let tip = [p.birthPlace && 'Born in ' + p.birthPlace, p.deathPlace && 'Died in ' + p.deathPlace].filter(Boolean).join(' · ');
+    const isMain = it.key === mainKey[it.id];
+    const inlaw = /spouse/.test(it.cls) && !blood.has(it.id);
+    if (inlaw) tip = ['Married into the family', tip].filter(Boolean).join(' · ');
+    return `<div class="card s-${p.sex || 'U'} ${it.cls}${inlaw ? ' inlaw' : ''}${it.id === db.focus ? ' focus' : ''}${isMain && it.id === flash ? ' located' : ''}" style="${st}" data-id="${it.id}"${isMain ? ' data-main' : ''} title="${esc(tip)}"><div class="nm">${it.id === root ? '★ ' : ''}${esc(fullName(p))}</div><div class="yr">${esc(span(p))}</div></div>`;
+  }).join('') + addonsHtml(expanded && mainKey[expanded] ? itemAt(b, mainKey[expanded]) : null, pos);
+  flash = null;
+
+  // Connecting lines, computed from the layout
+  const { d, dg } = buildLines(b, pos);
+  svg.setAttribute('width', cw); svg.setAttribute('height', ch);
+  svg.innerHTML = `<path d="${d}"/><path class="g" d="${dg}"/>`;
+
+  if (scrollTo) { const id = scrollTo; scrollTo = null; scrollToCard(id); }
+}
+
+// Partners who aren't also blood relatives (e.g. cousins who married) get the "married in" style.
+const bloodIds = b => new Set(b.items.filter(it => !it.ghost && !/spouse/.test(it.cls)).map(it => it.id));
+
+// Connecting lines for a laid-out tree: d = solid lines, dg = dashed lines to empty boxes.
+function buildLines(b, pos) {
+  const box = k => { const p = pos[k]; return { l: p.x, r: p.x + W, cx: p.x + W / 2, t: p.y, b: p.y + H, cy: p.y + H / 2 }; };
+  let d = '', dg = '';
+  // If other cards sit between two partners (e.g. cousins), the couple line goes under the cards.
+  const byLevel = {};
+  for (const it of b.items) (byLevel[it.level] ||= []).push(pos[it.key].x);
+  const coupleKey = (a, c) => [a, c].sort().join('|'), under = new Set();
+  for (const [a, c] of b.couples) {
+    const [x, y] = [box(a), box(c)].sort((m, n) => m.l - n.l);
+    if (byLevel[itemAt(b, a).level].some(px => px > x.l + 1 && px < y.l - 1)) {
+      under.add(coupleKey(a, c));
+      d += `M${x.r - 24} ${x.b}V${x.b + 12}H${y.l + 24}V${y.b}`;
+    } else d += `M${x.r} ${x.cy}H${y.l}`;
+  }
+  for (const e of b.edges) {
+    const ps = e.from.map(box), c = box(e.to);
+    const low = ps.length === 2 && under.has(coupleKey(...e.from));
+    const [sx, sy] = ps.length === 2 ? [(ps[0].cx + ps[1].cx) / 2, low ? ps[0].b + 12 : ps[0].cy] : [ps[0].cx, ps[0].b];
+    const seg = `M${sx} ${sy}V${c.t - VGAP / 2}H${c.cx}V${c.t}`;
+    if (e.ghost) dg += seg; else d += seg;
+  }
+  return { d, dg };
+}
+
+// Small "+ add" buttons around the located person for links that are missing.
+function addonsHtml(it, pos) {
+  if (!it) return '';
+  const id = it.id, p = P(id), { x, y } = pos[it.key];
+  const btn = (label, act, role) => `<button data-act="${act}" data-pid="${id}"${role ? ` data-role="${role}"` : ''} title="${esc(label.replace('+ ', 'Add ') + ' of ' + fullName(p))}">${label}</button>`;
+  const top = [];
+  if (!/root|line/.test(it.cls)) { // main-line people already have empty parent boxes
+    const pf = parentFam(id), known = pf ? [pf.a, pf.b].filter(Boolean) : [];
+    if (known.length < 2) {
+      const hasF = known.some(k => P(k).sex === 'F'), hasM = known.some(k => P(k).sex !== 'F');
+      if (!known.length || !hasM) top.push(btn('+ Father', 'addParent', 'father'));
+      if (!known.length || !hasF) top.push(btn('+ Mother', 'addParent', 'mother'));
+    }
+  }
+  const bottom = [btn('+ Partner', 'addSpouse'), btn('+ Child', 'addChild'), btn('+ Sibling', 'addSibling')];
+  return (top.length ? `<div class="addons" style="left:${x + W / 2}px;top:${y - 32}px">${top.join('')}</div>` : '')
+    + `<div class="addons" style="left:${x + W / 2}px;top:${y + H + 7}px">${bottom.join('')}</div>`;
+}
+
+// Clicking a name in the list: jump to them and show "+ add" buttons; clicking again hides them.
+function toggleLocate(id) {
+  if (expanded === id) { expanded = null; renderTree(); return; }
+  locate(id);
+}
+function locate(id) {
+  expanded = flash = id;
+  if (zoom < 0.6) { zoom = 1; try { localStorage.setItem(ZKEY, zoom); } catch (e) {} }
+  setFocus(id, true);
+}
+
+function scrollToCard(id) {
+  const main = $('#tree'), el = $('#rows').querySelector(`.card[data-id="${id}"][data-main]`);
+  if (!el) return;
+  const er = el.getBoundingClientRect(), mr = main.getBoundingClientRect();
+  main.scrollLeft += (er.left + er.width / 2) - (mr.left + mr.width / 2);
+  main.scrollTop += (er.top + er.height / 2) - (mr.top + mr.height / 2);
+}
+window.addEventListener('resize', () => renderTree());
+
+// ---------- full tree picture ----------
+// The whole tree as one SVG picture: real people only, bold connection lines, print-friendly colours.
+let fullPic = null;
+function fullTreeSvg() {
+  K = 0; noGhosts = true;
+  let b;
+  try { b = rootBlock(db.root); } finally { noGhosts = false; }
+  const M = 48, TITLE = 76, LH = 15;
+  const xs = b.items.map(i => i.x), minX = Math.min(...xs), w0 = Math.max(...xs) + W - minX;
+  const lv = b.items.map(i => i.level), top = Math.max(...lv), bot = Math.min(...lv);
+  const pos = {};
+  for (const it of b.items) pos[it.key] = { x: it.x - minX + M, y: (top - it.level) * (H + VGAP) + M + TITLE };
+  const width = Math.max(w0 + 2 * M, 560), height = (top - bot) * (H + VGAP) + H + 2 * M + TITLE;
+  const { d } = buildLines(b, pos), blood = bloodIds(b);
+
+  const ctx = document.createElement('canvas').getContext('2d');
+  const FONT = 'system-ui,-apple-system,"Segoe UI",sans-serif';
+  const fit = (t, font, max) => { ctx.font = font; if (ctx.measureText(t).width <= max) return t; while (t.length > 1 && ctx.measureText(t + '…').width > max) t = t.slice(0, -1); return t + '…'; };
+  const wrap = (text, font, max) => { // up to two lines
+    ctx.font = font;
+    const out = []; let cur = '';
+    for (const w of text.split(/\s+/)) {
+      const t = cur ? cur + ' ' + w : w;
+      if (!cur || ctx.measureText(t).width <= max) cur = t; else { out.push(cur); cur = w; }
+    }
+    if (cur) out.push(cur);
+    return out.length > 2 ? [out[0], fit(out.slice(1).join(' '), font, max)] : out.map(l => fit(l, font, max));
+  };
+  const C = { M: ['#dfe9f3', '#8eaacb'], F: ['#f6e1e6', '#cf97a9'], U: ['#ece8e1', '#bfb19c'] };
+  const cards = b.items.map(it => {
+    const p = P(it.id), sx = p.sex || 'U', { x, y } = pos[it.key];
+    const inlaw = /spouse/.test(it.cls) && !blood.has(it.id), isRoot = it.id === db.root, faded = /sib/.test(it.cls);
+    const nameFont = `${inlaw ? 'italic 500' : '600'} 13px ${FONT}`;
+    const lines = wrap((isRoot ? '★ ' : '') + fullName(p), nameFont, W - 20), yr = span(p);
+    const n = lines.length + (yr ? 1 : 0);
+    let ty = y + H / 2 - (n * LH) / 2 + 11;
+    let g = `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="10" fill="${inlaw ? '#ffffff' : C[sx][0]}" stroke="${isRoot ? '#8a5a2b' : C[sx][1]}" stroke-width="${isRoot ? 3 : 1.5}"/>`;
+    if (inlaw) g += `<rect x="${x + 1.5}" y="${y + 6}" width="6" height="${H - 12}" rx="3" fill="${C[sx][1]}"/>`;
+    for (const l of lines) { g += `<text x="${x + W / 2}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="13" font-weight="${inlaw ? 500 : 600}"${inlaw ? ' font-style="italic"' : ''} fill="${faded ? '#5c5249' : '#2b2622'}">${esc(l)}</text>`; ty += LH; }
+    if (yr) g += `<text x="${x + W / 2}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="11" fill="#7a6f64">${esc(yr)}</text>`;
+    return g;
+  }).join('');
+  const people = new Set(b.items.map(i => i.id)).size;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+    + `<rect width="100%" height="100%" fill="#fffdf8"/>`
+    + `<text x="${M}" y="${M + 18}" font-family="Georgia,'Times New Roman',serif" font-size="26" font-weight="600" fill="#2b2622">Family tree of ${esc(fullName(P(db.root)))}</text>`
+    + `<text x="${M}" y="${M + 42}" font-family='${FONT}' font-size="13" fill="#7a6f64">${people} people · ${top} generation${top === 1 ? '' : 's'} of ancestors · ${new Date().toLocaleDateString()}</text>`
+    + `<path d="${d}" fill="none" stroke="#4a3b2e" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`
+    + cards + `</svg>`;
+  return { svg, width, height };
+}
+
+function openFullTree() {
+  if (!P(db.root)) return alert('Your tree is empty.');
+  fullPic = fullTreeSvg();
+  $('#fullView').classList.remove('actual');
+  $('#full [data-x="size"]').textContent = 'Actual size';
+  $('#fullView').innerHTML = fullPic.svg;
+  $('#full').showModal();
+}
+const picName = ext => `family-tree-${fullName(P(db.root)).replace(/[^\w-]+/g, '-')}-${today()}.${ext}`;
+function savePng() {
+  const { svg, width, height } = fullPic;
+  const scale = Math.min(2, 16000 / width, 16000 / height, Math.sqrt(120e6 / (width * height))); // stay within browser canvas limits
+  const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = Math.round(width * scale); c.height = Math.round(height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob(bl => bl ? download(picName('png'), bl, 'image/png') : alert('The tree is too large to save as an image — try “Save as SVG”.'), 'image/png');
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert('Could not create the image — try “Save as SVG”.'); };
+  img.src = url;
+}
+function printTree() {
+  const w = window.open('', '_blank');
+  if (!w) return alert('Please allow pop-ups for this page to print.');
+  w.document.write(`<!doctype html><title>${esc(picName('pdf'))}</title><style>@page{size:landscape;margin:10mm}html,body{margin:0}svg{width:100%;height:auto;display:block}</style>${fullPic.svg}`);
+  w.document.close();
+  setTimeout(() => w.print(), 300);
+}
+$('#full').addEventListener('click', e => {
+  const x = e.target.closest('[data-x]')?.dataset.x;
+  if (x === 'close') $('#full').close();
+  if (x === 'png') savePng();
+  if (x === 'svg') download(picName('svg'), fullPic.svg, 'image/svg+xml');
+  if (x === 'print') printTree();
+  if (x === 'size') { const v = $('#fullView'); v.classList.toggle('actual'); e.target.textContent = v.classList.contains('actual') ? 'Fit to window' : 'Actual size'; }
+});
+
+// ---------- zoom ----------
+// Zoom keeps the point under the cursor (or the middle of the view) in place.
+function setZoom(z, at) {
+  const main = $('#tree'), r = main.getBoundingClientRect();
+  const mx = at ? at.clientX - r.left : main.clientWidth / 2, my = at ? at.clientY - r.top : main.clientHeight / 2;
+  const px = (main.scrollLeft + mx) / zoom - orgX, py = (main.scrollTop + my) / zoom - orgY; // point on the tree itself
+  zoom = Math.min(2, Math.max(0.1, z));
+  try { localStorage.setItem(ZKEY, zoom); } catch (e) {}
+  renderTree();
+  main.scrollLeft = (px + orgX) * zoom - mx; main.scrollTop = (py + orgY) * zoom - my;
+}
+function zoomFit() {
+  const main = $('#tree');
+  if (!treeW) return;
+  setZoom(Math.min(1, main.clientWidth / treeW, (main.clientHeight - $('#treebar').offsetHeight) / treeH));
+  main.scrollLeft = (orgX - PAD) * zoom - (main.clientWidth - treeW * zoom) / 2;
+  main.scrollTop = (orgY - PAD) * zoom - $('#treebar').offsetHeight;
+}
+$('#tree').addEventListener('wheel', e => {
+  if (!e.ctrlKey && !e.metaKey) return; // trackpad pinch arrives as ctrl + wheel
+  e.preventDefault();
+  setZoom(zoom * Math.exp(-e.deltaY * 0.01), e);
+}, { passive: false });
+
+function renderPanel() {
+  const p = P(db.focus), el = $('#panel');
+  if (!p) { el.innerHTML = '<p class="muted">Select or add a person to see their details here.</p>'; return; }
+  const pf = parentFam(p.id), sfs = spouseFams(p.id);
+  const rel = (id, unlinkSpec) => `<div class="rel"><a data-id="${id}">${esc(fullName(P(id)))}</a><span class="yr">${esc(span(P(id)))}</span>${unlinkSpec ? `<button class="x" title="Remove this link (does not delete the person)" data-unlink="${unlinkSpec}">✕</button>` : ''}</div>`;
+  const none = '<div class="none">None listed</div>';
+  const fld = (f, label, ph = '') => `<label class="fld"><span>${label}</span><input data-f="${f}" value="${esc(p[f])}" placeholder="${esc(ph)}"></label>`;
+
+  const parents = pf ? orderedSlots(pf).filter(Boolean).map(x => rel(x, `parent:${pf.id}:${x}`)).join('') : '';
+  const sibs = pf ? sortByBirth(pf.children.filter(c => c !== p.id)).map(x => rel(x)).join('') : '';
+  const spouses = sfs.filter(f => partnerOf(f, p.id)).map(f => rel(partnerOf(f, p.id), `spouse:${f.id}`)).join('');
+  const kids = sfs.flatMap(f => f.children.map(c => [f, c])).sort((x, y) => (yearOf(P(x[1]).birthDate) ?? 1e9) - (yearOf(P(y[1]).birthDate) ?? 1e9))
+    .map(([f, c]) => rel(c, `child:${f.id}:${c}`)).join('');
+
+  const rootCtl = p.id === db.root
+    ? '<div class="rootnote">★ Main person — the tree is drawn from them</div>'
+    : '<button class="mk" data-act="makeRoot">★ Make main person</button>';
+  const hint = shownIds.has(p.id) ? '' : `<p class="hint">Not shown in ${esc(fullName(P(db.root)))}’s tree. The tree shows their ancestors with their siblings, plus their partners and children.</p>`;
+  el.innerHTML = `<h2 id="pName">${esc(fullName(p))}</h2>${rootCtl}${hint}
+    <div class="two">${fld('given', 'Given names')}${fld('surname', 'Surname (at birth)')}</div>
+    <label class="fld"><span>Sex</span><select data-f="sex">${[['', 'Unknown'], ['M', 'Male'], ['F', 'Female']].map(([v, l]) => `<option value="${v}" ${p.sex === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <div class="two">${fld('birthDate', 'Born', 'e.g. 12 Mar 1921')}${fld('birthPlace', 'Birthplace')}</div>
+    <div class="two">${fld('deathDate', 'Died', 'leave blank if living')}${fld('deathPlace', 'Place of death')}</div>
+    <label class="fld"><span>Notes &amp; stories</span><textarea data-f="notes" rows="5" placeholder="Occupation, where they lived, memories, sources…">${esc(p.notes)}</textarea></label>
+    <h3>Parents</h3>${parents || none}
+    <h3>Partners</h3>${spouses || none}
+    <h3>Children</h3>${kids || none}
+    <h3>Siblings</h3>${sibs || none}
+    <div class="adds">
+      <button data-act="addParent" data-role="parent">+ Parent</button>
+      <button data-act="addSpouse">+ Partner</button>
+      <button data-act="addChild">+ Child</button>
+      <button data-act="addSibling">+ Sibling</button>
+    </div>
+    <button class="danger" data-act="delete">Delete ${esc(fullName(p))}…</button>`;
+}
+
+// Live edits from the details panel
+$('#panel').addEventListener('input', e => {
+  const f = e.target.dataset.f, p = P(db.focus);
+  if (!f || !p) return;
+  p[f] = e.target.value;
+  save();
+  $('#pName').textContent = fullName(p);
+  renderList(); renderTree();
+});
+
+// ---------- clicks ----------
+document.addEventListener('click', e => {
+  if (e.target.closest('dialog')) return;
+  const t = e.target.closest('[data-act],[data-id],[data-unlink]');
+  if (!t) return;
+  const ds = t.dataset;
+  if (ds.unlink) return unlink(ds.unlink);
+  if (ds.id && t.closest('#list')) return toggleLocate(ds.id);
+  if (ds.id) { if (ds.id !== expanded) expanded = null; return setFocus(ds.id, !!t.closest('#panel')); }
+  const who = ds.pid || db.focus; // tree placeholders act on the person they belong to
+  switch (ds.act) {
+    case 'new': return openAdd({ title: Object.keys(db.people).length ? 'Add a person' : 'Add the first person', newOnly: true, onPick(id) { db.focus = id; } });
+    case 'import': return $('#file').click();
+    case 'exportJson': return exportJson();
+    case 'exportGed': return exportGedcom();
+    case 'center': return scrollToCard(db.root);
+    case 'zoomIn': return setZoom(zoom * 1.25);
+    case 'zoomOut': return setZoom(zoom / 1.25);
+    case 'zoomReset': return setZoom(1);
+    case 'zoomFit': return zoomFit();
+    case 'fullTree': return openFullTree();
+    case 'toggleSide': return toggleSide();
+    case 'makeRoot': return setRoot(db.focus);
+    case 'addParent': return addParent(who, ds.role || 'parent');
+    case 'addSpouse': return addSpouse(who);
+    case 'fillPartner': return fillPartner(ds.fam, who);
+    case 'addChild': return addChild(who, ds.fam);
+    case 'addSibling': return addSibling(who);
+    case 'delete': return deletePerson(db.focus);
+  }
+});
+$('#search').addEventListener('input', renderList);
+$('#rootSel').addEventListener('change', e => setRoot(e.target.value));
+
+// ---------- files ----------
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const today = () => new Date().toISOString().slice(0, 10);
+function exportJson() {
+  if (!Object.keys(db.people).length) return alert('Your tree is empty.');
+  db.exportedAt = Date.now(); save();
+  download(`family-tree-${today()}.json`, JSON.stringify({ app: 'family-tree', version: 1, people: db.people, families: db.families, root: db.root, focus: db.focus }, null, 2), 'application/json');
+}
+
+function exportGedcom() {
+  if (!Object.keys(db.people).length) return alert('Your tree is empty.');
+  const iid = {}, fid = {};
+  Object.keys(db.people).forEach((id, i) => iid[id] = `@I${i + 1}@`);
+  Object.keys(db.families).forEach((id, i) => fid[id] = `@F${i + 1}@`);
+  const t = s => String(s).replace(/@/g, '@@');
+  const out = ['0 HEAD', '1 SOUR FamilyTreeHTML', '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8'];
+  const note = (lvl, text) => text.split(/\r?\n/).forEach((ln, i) => out.push(i ? `${lvl + 1} CONT ${t(ln)}` : `${lvl} NOTE ${t(ln)}`));
+  for (const p of Object.values(db.people)) {
+    out.push(`0 ${iid[p.id]} INDI`, `1 NAME ${t(p.given || '')} /${t(p.surname || '')}/`);
+    if (p.given) out.push(`2 GIVN ${t(p.given)}`);
+    if (p.surname) out.push(`2 SURN ${t(p.surname)}`);
+    if (p.sex) out.push(`1 SEX ${p.sex}`);
+    for (const [tag, pre] of [['BIRT', 'birth'], ['DEAT', 'death']]) {
+      if (p[pre + 'Date'] || p[pre + 'Place']) {
+        out.push(`1 ${tag}`);
+        if (p[pre + 'Date']) out.push(`2 DATE ${t(p[pre + 'Date'])}`);
+        if (p[pre + 'Place']) out.push(`2 PLAC ${t(p[pre + 'Place'])}`);
+      }
+    }
+    if (p.notes) note(1, p.notes);
+    const pf = parentFam(p.id);
+    if (pf) out.push(`1 FAMC ${fid[pf.id]}`);
+    spouseFams(p.id).forEach(f => out.push(`1 FAMS ${fid[f.id]}`));
+  }
+  for (const f of Object.values(db.families)) {
+    out.push(`0 ${fid[f.id]} FAM`);
+    let [h, w] = orderedSlots(f);
+    if (h && P(h).sex === 'F' && !w) [h, w] = [null, h];
+    if (h) out.push(`1 HUSB ${iid[h]}`);
+    if (w) out.push(`1 WIFE ${iid[w]}`);
+    f.children.forEach(c => out.push(`1 CHIL ${iid[c]}`));
+  }
+  out.push('0 TRLR');
+  download(`family-tree-${today()}.ged`, out.join('\n') + '\n', 'text/plain');
+}
+
+function parseGedcom(text) {
+  const indi = {}, fam = {};
+  let rec = null, l1 = null;
+  const un = s => s.replace(/@@/g, '@');
+  for (const raw of text.replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+    const m = raw.trim().match(/^(\d+)\s+(?:(@[^@]+@)\s+)?(\S+)(?:\s(.*))?$/);
+    if (!m) continue;
+    const lv = +m[1], xref = m[2], tag = m[3].toUpperCase(), val = m[4] || '';
+    if (lv === 0) {
+      l1 = null;
+      if (tag === 'INDI') { rec = { t: 'I', p: { given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '' } }; indi[xref] = rec.p; }
+      else if (tag === 'FAM') { rec = { t: 'F', f: { h: null, w: null, c: [] } }; fam[xref] = rec.f; }
+      else rec = null;
+      continue;
+    }
+    if (!rec) continue;
+    if (lv === 1) {
+      l1 = tag;
+      if (rec.t === 'I') {
+        const p = rec.p;
+        if (tag === 'NAME' && !p._named) {
+          p._named = true;
+          const nm = val.match(/^([^/]*)\/?([^/]*)\/?(.*)$/);
+          p.given = un((nm[1] + ' ' + nm[3]).trim().replace(/\s+/g, ' '));
+          p.surname = un(nm[2].trim());
+        } else if (tag === 'SEX') { const s = val.trim().toUpperCase()[0]; p.sex = s === 'M' || s === 'F' ? s : ''; }
+        else if (tag === 'NOTE' && !val.startsWith('@')) p.notes += (p.notes ? '\n' : '') + un(val);
+      } else {
+        const f = rec.f, v = val.trim();
+        if (tag === 'HUSB') f.h = v; else if (tag === 'WIFE') f.w = v; else if (tag === 'CHIL') f.c.push(v);
+      }
+    } else if (lv === 2 && rec.t === 'I') {
+      const p = rec.p;
+      if (l1 === 'NAME') { if (tag === 'GIVN' && !p.given) p.given = un(val); if (tag === 'SURN' && !p.surname) p.surname = un(val); }
+      else if (l1 === 'BIRT' || l1 === 'DEAT') {
+        const pre = l1 === 'BIRT' ? 'birth' : 'death';
+        if (tag === 'DATE' && !p[pre + 'Date']) p[pre + 'Date'] = un(val);
+        if (tag === 'PLAC' && !p[pre + 'Place']) p[pre + 'Place'] = un(val);
+      } else if (l1 === 'NOTE') { if (tag === 'CONT') p.notes += '\n' + un(val); if (tag === 'CONC') p.notes += un(val); }
+    }
+  }
+  const people = {}, families = {}, map = {};
+  for (const [x, p] of Object.entries(indi)) { delete p._named; p.id = uid('p'); map[x] = p.id; people[p.id] = p; }
+  for (const f of Object.values(fam)) {
+    const id = uid('f');
+    families[id] = { id, a: map[f.h] || null, b: map[f.w] || null, children: f.c.map(c => map[c]).filter(Boolean) };
+  }
+  return { people, families };
+}
+
+$('#file').addEventListener('change', async e => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  const text = await file.text();
+  let data;
+  try {
+    if (text.trim().startsWith('{')) { data = JSON.parse(text); if (!data.people || !data.families) throw new Error('this is not a family tree backup'); }
+    else data = parseGedcom(text);
+  } catch (err) { return alert('Could not read that file: ' + err.message); }
+  const n = Object.keys(data.people).length, cur = Object.keys(db.people).length;
+  if (!n) return alert('No people were found in that file.');
+  if (cur && !confirm(`Replace your current tree (${cur} people) with the ${n} people in “${file.name}”?\n\nTip: click Cancel and “Save backup” first if you're not sure.`)) return;
+  db.people = data.people; db.families = data.families;
+  db.root = P(data.root) ? data.root : P(data.focus) ? data.focus : null;
+  db.focus = db.root;
+  normalize(); scrollTo = db.root; save(); renderAll();
+});
+
+normalize(); renderStatus(); scrollTo = db.root; renderAll();
+</script>
+</body>
+</html>
