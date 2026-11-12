@@ -50,7 +50,7 @@ body.side-closed #sideOpen{display:inline-block}
 #lines{position:absolute;left:0;top:0;pointer-events:none}
 #lines path{fill:none;stroke:var(--line);stroke-width:2}
 #lines path.g{stroke-dasharray:4 4}
-.card{position:absolute;width:150px;height:64px;padding:6px 10px;border-radius:10px;background:var(--u);border:1px solid var(--line);cursor:pointer;text-align:center;display:flex;flex-direction:column;justify-content:center;color:inherit;font:inherit;overflow:hidden}
+.card{position:absolute;width:160px;height:64px;padding:6px 10px;border-radius:10px;background:var(--u);border:1px solid var(--line);cursor:pointer;text-align:center;display:flex;flex-direction:column;justify-content:center;color:inherit;font:inherit;overflow:hidden}
 .card.s-M{background:var(--m)}
 .card.s-F{background:var(--f)}
 .card .nm{font-weight:600;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -108,6 +108,40 @@ dialog h3{margin:0 0 14px;font-family:Georgia,serif;font-size:19px}
 dialog .or{text-align:center;color:var(--muted);font-size:12px;margin:4px 0 10px}
 dialog menu{display:flex;justify-content:flex-end;gap:8px;padding:0;margin:16px 0 0}
 
+/* Photos */
+.card .tx{min-width:0;width:100%}
+.card.hasph{flex-direction:row;align-items:center;gap:8px;text-align:left;padding:6px 8px}
+.card .ph{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none;background:var(--panel);border:1px solid var(--line)}
+.photo{display:flex;align-items:center;gap:14px;margin:0 0 14px}
+.photo img,.photo .ph0{width:84px;height:84px;border-radius:50%;object-fit:cover;border:1px solid var(--line);flex:none}
+.photo .ph0{display:flex;align-items:center;justify-content:center;background:var(--u);color:var(--muted);font:600 30px Georgia,serif}
+.photo .btns{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+/* Partnerships */
+#lines path.e{stroke-dasharray:7 5}
+.cpl{position:absolute;transform:translate(-50%,-50%);z-index:2;min-width:20px;height:20px;padding:0 3px;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:999px;cursor:default}
+.cpl.ended{color:var(--danger);font-weight:700}
+.pship{border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:6px 0}
+.pship .rel{padding:0}
+.three{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:6px;margin-top:6px}
+.three select,.three input{padding:5px 6px;font-size:13px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:-2px 0 10px;cursor:pointer}
+.chk input{width:auto;margin:0}
+.relto{color:var(--muted);font-size:13px;margin:-8px 0 12px}
+.relto a{color:var(--accent);cursor:pointer}
+/* Tools: relationship finder, dates, charts */
+.big{font-size:16px;line-height:1.5;margin:4px 0 8px}
+.out{min-height:60px}
+.dl{list-style:none;margin:0;padding:0;max-height:60vh;overflow:auto}
+.dl li{display:grid;grid-template-columns:92px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.dl li:last-child{border-bottom:none}
+.dl .when{color:var(--muted);font-size:12px;padding-top:2px}
+.dl .when b{color:var(--accent)}
+.dl a{color:var(--accent);cursor:pointer;font-weight:600}
+.dl .past{opacity:.7}
+.fullbar select{width:auto;padding:6px 8px}
+.fullbar .chk{margin:0}
+#treebar button:disabled{opacity:.45;cursor:default}
+
 @media (max-width:900px){
   body{display:block;height:auto;overflow:auto}
   #side{border-right:none;border-bottom:1px solid var(--line)}
@@ -132,17 +166,30 @@ dialog menu{display:flex;justify-content:flex-end;gap:8px;padding:0;margin:16px 
       <button data-act="import" title="Load a backup or a GEDCOM file">Open file…</button>
     </div>
     <button data-act="exportGed" title="GEDCOM works with Gramps, Ancestry, MyHeritage, FamilySearch and others">Export GEDCOM</button>
+    <div class="two">
+      <button data-act="relFind" title="Find out how any two people are related">How related?</button>
+      <button data-act="dates" title="Upcoming birthdays and anniversaries">Birthdays</button>
+    </div>
   </div>
   <div id="status"></div>
   <input id="file" type="file" accept=".json,.ged,.gedcom,text/plain" hidden>
+  <input id="photoFile" type="file" accept="image/*" hidden>
 </aside>
 
-<main id="tree"><div id="treebar"><button id="sideOpen" data-act="toggleSide" title="Show the people list">☰ People</button><button data-act="center" title="Scroll back to the main person">★ Main person</button><button class="zb" data-act="zoomOut" title="Zoom out (or pinch / Ctrl + scroll)">−</button><button class="zb" data-act="zoomReset" id="zoomLbl" title="Reset to 100%">100%</button><button class="zb" data-act="zoomIn" title="Zoom in">+</button><button data-act="zoomFit" title="Fit the whole tree on screen">Fit</button><button data-act="fullTree" title="Show the whole tree as one picture you can save or print">Full tree</button></div><div id="canvas"><svg id="lines"></svg><div id="rows"></div></div></main>
+<main id="tree"><div id="treebar"><button id="sideOpen" data-act="toggleSide" title="Show the people list">☰ People</button><button class="zb" id="undoBtn" data-act="undo" title="Undo (⌘/Ctrl + Z)" disabled>↶</button><button class="zb" id="redoBtn" data-act="redo" title="Redo (⌘/Ctrl + Shift + Z)" disabled>↷</button><button data-act="center" title="Scroll back to the main person">★ Main person</button><button class="zb" data-act="zoomOut" title="Zoom out (or pinch / Ctrl + scroll)">−</button><button class="zb" data-act="zoomReset" id="zoomLbl" title="Reset to 100%">100%</button><button class="zb" data-act="zoomIn" title="Zoom in">+</button><button data-act="zoomFit" title="Fit the whole tree on screen">Fit</button><button data-act="fullTree" title="Family tree, ancestor and descendant charts you can save or print">Charts &amp; print</button></div><div id="canvas"><svg id="lines"></svg><div id="rows"></div></div></main>
 
 <section id="panel"></section>
 
 <dialog id="full">
-  <div class="fullbar"><h3>Full family tree</h3>
+  <div class="fullbar"><h3>Charts</h3>
+    <select id="chartType" title="Kind of chart">
+      <option value="all">Whole family</option>
+      <option value="anc">Ancestors</option>
+      <option value="desc">Descendants</option>
+    </select>
+    <span class="muted">of</span>
+    <select id="chartWho" title="Whose chart"></select>
+    <label class="chk" title="Shows “Living” instead of dates and leaves out photos for people who are still alive — good for sharing"><input type="checkbox" id="chartPriv"> Hide living people’s details</label>
     <button data-x="size">Actual size</button>
     <button data-x="png" class="primary">Save as image</button>
     <button data-x="svg">Save as SVG</button>
@@ -170,8 +217,25 @@ dialog menu{display:flex;justify-content:flex-end;gap:8px;padding:0;margin:16px 
       </div>
     </div>
     <label class="fld" id="dOtherWrap"><span>Other parent</span><select id="dOther"></select></label>
+    <label class="fld" id="dTypeWrap"><span>Relationship</span><select id="dType"></select></label>
     <menu><button value="cancel" formnovalidate>Cancel</button><button value="ok" class="primary">Add</button></menu>
   </form>
+</dialog>
+
+<dialog id="relDlg">
+  <h3>How are they related?</h3>
+  <div class="two">
+    <label class="fld"><span>Person</span><select id="relA"></select></label>
+    <label class="fld"><span>and</span><select id="relB"></select></label>
+  </div>
+  <div id="relOut" class="out"></div>
+  <menu><button data-x="close">Close</button></menu>
+</dialog>
+
+<dialog id="datesDlg">
+  <h3>Birthdays &amp; anniversaries</h3>
+  <div id="datesOut"></div>
+  <menu><button data-x="close">Close</button></menu>
 </dialog>
 
 <script>
@@ -201,13 +265,92 @@ const partnerOf = (f, id) => f.a === id ? f.b : f.a;
 const yearOf = d => { const m = String(d || '').match(/\d{4}/); return m ? +m[0] : null; };
 const fullName = p => p ? ([p.given, p.surname].filter(Boolean).join(' ') || 'Unnamed') : '';
 const givenOf = p => (p && (p.given || '').split(' ')[0]) || fullName(p);
+const isDead = p => !!(p.deathDate || p.deathPlace || p.burialPlace || p.deceased);
+// Treated as living: no sign of death and not born more than 105 years ago.
+const isLiving = p => !isDead(p) && !((yearOf(p.birthDate) ?? 9999) < new Date().getFullYear() - 105);
 function span(p) {
   const b = yearOf(p.birthDate), d = yearOf(p.deathDate);
   if (b && d) return `${b} – ${d}`;
-  if (b) return `b. ${b}`;
+  if (b) return isDead(p) ? `${b} – ?` : `b. ${b}`;
   if (d) return `d. ${d}`;
-  return '';
+  return isDead(p) ? 'deceased' : '';
 }
+
+// Partnerships: each family can say what kind of relationship it was, with dates.
+const REL_TYPES = [['', 'Not specified'], ['married', 'Married'], ['partners', 'Partners (not married)'], ['engaged', 'Engaged'],
+  ['separated', 'Separated'], ['divorced', 'Divorced'], ['affair', 'Affair / brief relationship'], ['other', 'Other']];
+const relLabel = t => (REL_TYPES.find(r => r[0] === (t || '')) || REL_TYPES[0])[1];
+const SYMBOLS = { married: '⚭', divorced: '✕', separated: '//', partners: '♡', engaged: '◇', affair: '♡' };
+const relSymbol = t => SYMBOLS[t] || '';
+const SYMBOL_KEY = { married: 'married', divorced: 'divorced', separated: 'separated', partners: 'partners', engaged: 'engaged' };
+const relDashed = t => ['divorced', 'separated', 'affair'].includes(t);
+function relSummary(f) {
+  const bits = [relLabel(f.type)];
+  if (f.start) bits.push((f.type === 'engaged' ? 'from ' : f.type === 'married' || f.type === 'divorced' || f.type === 'separated' ? 'married ' : 'from ') + f.start);
+  if (f.end) bits.push((f.type === 'divorced' ? 'divorced ' : 'until ') + f.end);
+  return bits.join(' · ');
+}
+// Order someone's partnerships oldest first (by start date, else by the eldest child's birth).
+const famYear = f => yearOf(f.start) ?? Math.min(...f.children.map(c => yearOf(P(c)?.birthDate) ?? 1e9), 1e9);
+const sortFams = list => [...list].sort((x, y) => famYear(x) - famYear(y));
+
+// ---------- photos (kept in the browser's IndexedDB, separate from the tree data) ----------
+const photos = {};
+let idbP = null;
+function idb() {
+  return idbP ||= new Promise((res, rej) => {
+    const r = indexedDB.open('familytree-photos', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('photos');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+function idbTx(mode, fn) {
+  return idb().then(d => new Promise((res, rej) => {
+    const tx = d.transaction('photos', mode), out = fn(tx.objectStore('photos'));
+    tx.oncomplete = () => res(out && out.result); tx.onerror = tx.onabort = () => rej(tx.error);
+  }));
+}
+async function loadPhotos() {
+  try {
+    const keys = await idbTx('readonly', st => st.getAllKeys()), vals = await idbTx('readonly', st => st.getAll());
+    keys.forEach((k, i) => photos[k] = vals[i]);
+  } catch (e) {}
+}
+async function setPhoto(id, url) {
+  if (url) photos[id] = url; else delete photos[id];
+  renderTree(); renderPanel();
+  try { await idbTx('readwrite', st => url ? st.put(url, id) : st.delete(id)); }
+  catch (e) { alert('Could not save the photo in this browser. It will be lost when you close the page — use “Save backup”.'); }
+}
+async function replacePhotos(obj) {
+  for (const k in photos) delete photos[k];
+  Object.assign(photos, obj || {});
+  try { await idbTx('readwrite', st => { st.clear(); for (const k in photos) st.put(photos[k], k); }); } catch (e) {}
+}
+// Shrink a picture to a small JPEG so hundreds fit in the browser.
+async function shrinkImage(file, max = 360) {
+  const u = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = u; });
+    const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.85);
+  } finally { URL.revokeObjectURL(u); }
+}
+
+// ---------- undo / redo ----------
+let undoStack = [], redoStack = [], editKey = null;
+const snap = () => JSON.stringify({ people: db.people, families: db.families, root: db.root, focus: db.focus });
+function pushUndo() { undoStack.push(snap()); if (undoStack.length > 80) undoStack.shift(); redoStack = []; updUndo(); }
+function restoreSnap(s) { Object.assign(db, JSON.parse(s)); normalize(); save(); renderAll(); }
+function undo() { if (!undoStack.length) return; redoStack.push(snap()); editKey = null; restoreSnap(undoStack.pop()); updUndo(); }
+function redo() { if (!redoStack.length) return; undoStack.push(snap()); editKey = null; restoreSnap(redoStack.pop()); updUndo(); }
+function updUndo() { const u = $('#undoBtn'), r = $('#redoBtn'); if (u) { u.disabled = !undoStack.length; r.disabled = !redoStack.length; } }
+// Typing in one field counts as one undo step.
+function trackEdit(key) { if (key !== editKey) { pushUndo(); editKey = key; } }
 const sortByBirth = ids => [...ids].sort((x, y) => (yearOf(P(x).birthDate) ?? 1e9) - (yearOf(P(y).birthDate) ?? 1e9));
 const sortedPeople = () => Object.values(db.people).sort((x, y) =>
   (x.surname || '').localeCompare(y.surname || '') || (x.given || '').localeCompare(y.given || ''));
@@ -218,7 +361,8 @@ function orderedSlots(f) { // father-ish first, mother-ish second
 }
 function newFam(a, b, children) { const f = { id: uid('f'), a, b, children }; db.families[f.id] = f; return f; }
 function createPerson(data) {
-  const p = { id: uid('p'), given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '', ...data };
+  const p = { id: uid('p'), given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '',
+    nickname: '', occupation: '', residence: '', burialPlace: '', sources: '', deceased: false, ...data };
   db.people[p.id] = p; return p.id;
 }
 
@@ -247,7 +391,7 @@ function normalize() {
   if (!db.focus) db.focus = db.root;
 }
 
-function mutate(fn, recenter) { fn(); normalize(); save(); renderAll(recenter); }
+function mutate(fn, recenter) { pushUndo(); editKey = null; fn(); normalize(); save(); renderAll(recenter); }
 
 // ---------- add-person dialog ----------
 let pending = null;
@@ -260,6 +404,9 @@ function openAdd(o) {
     .map(p => `<option value="${p.id}">${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('');
   $('#dGiven').value = ''; $('#dSurname').value = o.surname || ''; $('#dSex').value = o.sex || ''; $('#dBirth').value = '';
   $('#dOtherWrap').hidden = !o.others;
+  $('#dTypeWrap').hidden = !o.relType;
+  $('#dType').innerHTML = REL_TYPES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  $('#dType').value = 'married';
   if (o.others) {
     $('#dOther').innerHTML = o.others.map(x => `<option value="${x.value}">${esc(x.label)}</option>`).join('');
     $('#dOther').value = o.otherDefault || o.others[0].value;
@@ -277,7 +424,7 @@ $('#dlg').addEventListener('close', () => {
   if (!id && !given && !surname) return alert('Please enter a name, or choose someone already in your tree.');
   mutate(() => {
     if (!id) id = createPerson({ given, surname, sex: $('#dSex').value, birthDate: $('#dBirth').value.trim() });
-    o.onPick(id, $('#dOther').value);
+    o.onPick(id, $('#dOther').value, $('#dType').value);
   });
   // Jump to the person just added (if they're drawn in the tree) so you can keep building from them.
   if (shownIds.has(id)) locate(id);
@@ -309,10 +456,15 @@ function addParent(childId, role) {
 function addSpouse(id) {
   const p = P(id);
   openAdd({
-    title: `Add spouse or partner of ${fullName(p)}`,
+    title: spouseFams(id).some(f => partnerOf(f, id)) ? `Add another partner of ${fullName(p)}` : `Add spouse or partner of ${fullName(p)}`,
     sex: p.sex === 'M' ? 'F' : p.sex === 'F' ? 'M' : '',
     exclude: [id],
-    onPick(s) { newFam(id, s, []); }
+    relType: true,
+    onPick(s, _, type) {
+      const old = spouseFams(id).find(f => partnerOf(f, id) === s);
+      if (old) return; // already partners
+      newFam(id, s, []).type = type;
+    }
   });
 }
 function addChild(id, famId) {
@@ -371,6 +523,167 @@ function deletePerson(id) {
 function setFocus(id, scroll) { db.focus = id; save(); if (scroll) scrollTo = id; renderAll(); }
 function setRoot(id) { db.root = id; db.focus = id; save(); scrollTo = id; renderAll(); }
 
+// ---------- relationships ("How are they related?") ----------
+// Every ancestor of `id` (including themself) with how many generations up they are.
+function ancestorsOf(id) {
+  const d = new Map([[id, 0]]), q = [id];
+  while (q.length) {
+    const x = q.shift(), f = x.startsWith('F:') ? null : parentFam(x);
+    if (!f) continue;
+    // The parents' family counts as an ancestor too, so siblings are related even when their parents aren't entered.
+    if (!d.has('F:' + f.id)) d.set('F:' + f.id, d.get(x) + 1);
+    for (const p of [f.a, f.b]) if (p && !d.has(p)) { d.set(p, d.get(x) + 1); q.push(p); }
+  }
+  return d;
+}
+// Closest common ancestors of a and b: { up, down, cas, half } or null if not blood relatives.
+function bloodRel(a, b) {
+  const A = ancestorsOf(a), B = ancestorsOf(b);
+  let best = null;
+  for (const [x, da] of A) {
+    if (!B.has(x)) continue;
+    const db_ = B.get(x), s = da + db_;
+    if (!best || s < best.up + best.down) best = { up: da, down: db_, cas: [x] };
+    else if (s === best.up + best.down && da === best.up) best.cas.push(x);
+  }
+  if (!best || best.up === 0 || best.down === 0) return best && { ...best, half: false };
+  // Half relation: the two lines come down from the common ancestor through different couples.
+  const ca = best.cas[0];
+  const via = (M, n) => [...M].find(([x, d]) => d === n - 1 && [parentFam(x)?.a, parentFam(x)?.b].includes(ca))?.[0];
+  const x = via(A, best.up), y = via(B, best.down);
+  const half = best.cas.length === 1 && x && y && parentFam(x) !== parentFam(y);
+  return { ...best, half: !!half };
+}
+const gw = (sex, m, f, n) => sex === 'M' ? m : sex === 'F' ? f : n;
+const greats = k => k <= 0 ? '' : k === 1 ? 'great-' : k === 2 ? 'great-great-' : `${k}× great-`;
+function bloodName({ up, down, half }, sex) {
+  const h = half ? 'half-' : '';
+  if (up === 0 && down === 0) return 'self';
+  if (up === 0) return down === 1 ? gw(sex, 'son', 'daughter', 'child') : greats(down - 2) + 'grand' + gw(sex, 'son', 'daughter', 'child');
+  if (down === 0) return up === 1 ? gw(sex, 'father', 'mother', 'parent') : greats(up - 2) + 'grand' + gw(sex, 'father', 'mother', 'parent');
+  if (up === 1 && down === 1) return h + gw(sex, 'brother', 'sister', 'sibling');
+  if (up === 1) return h + (down === 2 ? '' : greats(down - 3) + 'grand') + gw(sex, 'nephew', 'niece', 'nephew/niece');
+  if (down === 1) return h + greats(up - 2) + gw(sex, 'uncle', 'aunt', 'uncle/aunt');
+  const c = Math.min(up, down) - 1, r = Math.abs(up - down);
+  const ord = ['', 'first', 'second', 'third', 'fourth', 'fifth'][c] || `${c}th`;
+  const rem = r === 0 ? '' : r === 1 ? ' once removed' : r === 2 ? ' twice removed' : ` ${r} times removed`;
+  return `${h}${ord} cousin${rem}`;
+}
+function partnerWord(f, sex) {
+  const t = f.type || '';
+  if (t === 'engaged') return gw(sex, 'fiancé', 'fiancée', 'fiancé(e)');
+  if (t === 'divorced') return 'ex-' + gw(sex, 'husband', 'wife', 'spouse');
+  if (t === 'separated') return 'separated ' + gw(sex, 'husband', 'wife', 'spouse');
+  if (t === '' || t === 'married') return gw(sex, 'husband', 'wife', 'spouse');
+  return 'partner';
+}
+// Describes b from a's point of view: "a's <text>". Returns { text, cas } or null.
+function relInfo(a, b) {
+  if (!P(a) || !P(b)) return null;
+  if (a === b) return { text: 'self', cas: [] };
+  const sb = P(b).sex, br = bloodRel(a, b);
+  if (br) return { text: bloodName(br, sb), cas: br.cas, br };
+  for (const f of spouseFams(a)) if (partnerOf(f, a) === b) return { text: partnerWord(f, sb), cas: [] };
+  // b is the partner of a's blood relative
+  for (const f of spouseFams(b)) {
+    const r = partnerOf(f, b), x = r && bloodRel(a, r);
+    if (!x) continue;
+    if (x.up === 0 && x.down === 1) return { text: gw(sb, 'son', 'daughter', 'child') + '-in-law', cas: [] };
+    if (x.up === 1 && x.down === 1) return { text: gw(sb, 'brother', 'sister', 'sibling') + '-in-law', cas: [] };
+    if (x.up === 1 && x.down === 0) return { text: gw(sb, 'stepfather', 'stepmother', 'step-parent'), cas: [] };
+    return { text: `${bloodName(x, P(r).sex)}’s ${partnerWord(f, sb)}`, cas: [] };
+  }
+  // b is a blood relative of a's partner
+  for (const f of spouseFams(a)) {
+    const s = partnerOf(f, a), x = s && bloodRel(s, b);
+    if (!x) continue;
+    if (x.up === 1 && x.down === 0) return { text: gw(sb, 'father', 'mother', 'parent') + '-in-law', cas: [] };
+    if (x.up === 1 && x.down === 1) return { text: gw(sb, 'brother', 'sister', 'sibling') + '-in-law', cas: [] };
+    if (x.up === 0 && x.down === 1) return { text: gw(sb, 'stepson', 'stepdaughter', 'stepchild'), cas: [] };
+    return { text: `${partnerWord(f, P(s).sex)}’s ${bloodName(x, sb)}`, cas: [] };
+  }
+  return null;
+}
+const names = ids => ids.map(i => fullName(P(i)));
+function openRelFinder() {
+  if (Object.keys(db.people).length < 2) return alert('Add at least two people first.');
+  const opts = sortedPeople().map(p => `<option value="${p.id}">${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('');
+  $('#relA').innerHTML = $('#relB').innerHTML = opts;
+  $('#relA').value = db.root; $('#relB').value = db.focus !== db.root ? db.focus : sortedPeople().find(p => p.id !== db.root).id;
+  showRel(); $('#relDlg').showModal();
+}
+function showRel() {
+  const a = $('#relA').value, b = $('#relB').value, r = relInfo(a, b);
+  const A = `<b>${esc(fullName(P(a)))}</b>`, B = `<b>${esc(fullName(P(b)))}</b>`;
+  let html;
+  if (!r) html = `<p class="big">No relationship found between ${A} and ${B} in this tree.</p><p class="muted">They may be related through people who aren’t in the tree yet.</p>`;
+  else if (r.text === 'self') html = `<p class="big">That’s the same person.</p>`;
+  else {
+    html = `<p class="big">${B} is ${A}’s <b>${esc(r.text)}</b>.</p>`;
+    const back = relInfo(b, a);
+    if (back) html += `<p>${A} is ${B}’s ${esc(back.text)}.</p>`;
+    const cas = r.cas.filter(x => !x.startsWith('F:'));
+    if (r.br && r.br.up > 0 && r.br.down > 0) html += `<p class="muted">Closest common ancestor${cas.length > 1 ? 's' : ''}: ${cas.length ? esc(names(cas).join(' and ')) : 'parents not yet in the tree'} — ${r.br.up} generation${r.br.up > 1 ? 's' : ''} up from ${esc(fullName(P(a)))}.</p>`;
+  }
+  $('#relOut').innerHTML = html;
+}
+$('#relA').addEventListener('change', showRel);
+$('#relB').addEventListener('change', showRel);
+
+// ---------- birthdays & anniversaries ----------
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+// Day and month from dates like "12 Mar 1921", "March 12, 1921", "1921-03-12" or "12.03.1921" (day first).
+function dayMonth(s) {
+  s = String(s || '').trim().toLowerCase();
+  let m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return { d: +m[3], m: +m[2] - 1, y: +m[1] };
+  m = s.match(/(\d{1,2})\s+([a-z]{3})[a-z]*\.?,?\s*(\d{4})?/);
+  if (m && MONTHS.includes(m[2])) return { d: +m[1], m: MONTHS.indexOf(m[2]), y: m[3] ? +m[3] : null };
+  m = s.match(/([a-z]{3})[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?/);
+  if (m && MONTHS.includes(m[1])) return { d: +m[2], m: MONTHS.indexOf(m[1]), y: m[3] ? +m[3] : null };
+  m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+  if (m) return { d: +m[1], m: +m[2] - 1, y: +m[3] };
+  return null;
+}
+function upcomingDates() {
+  const now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()), out = [];
+  const next = dm => {
+    if (!dm || dm.m < 0 || dm.m > 11 || dm.d < 1 || dm.d > 31) return null;
+    let d = new Date(t0.getFullYear(), dm.m, dm.d);
+    if (d < t0) d = new Date(t0.getFullYear() + 1, dm.m, dm.d);
+    return { date: d, days: Math.round((d - t0) / 864e5), years: dm.y ? d.getFullYear() - dm.y : null };
+  };
+  for (const p of Object.values(db.people)) {
+    const b = next(dayMonth(p.birthDate));
+    if (b) out.push({ ...b, id: p.id, past: !isLiving(p), what: isLiving(p) ? (b.years != null ? `turns ${b.years}` : 'birthday') : (b.years != null ? `born ${b.years} years ago` : 'birthday') });
+    const d = next(dayMonth(p.deathDate));
+    if (d) out.push({ ...d, id: p.id, past: true, what: d.years != null ? `died ${d.years} years ago` : 'anniversary of death' });
+  }
+  for (const f of fams()) {
+    if (!f.a || !f.b || !['', 'married'].includes(f.type || '') || f.end) continue;
+    const w = next(dayMonth(f.start));
+    if (!w) continue;
+    const both = isLiving(P(f.a)) && isLiving(P(f.b));
+    out.push({ ...w, id: f.a, id2: f.b, past: !both, what: w.years != null ? `${w.years} years married` : 'wedding anniversary' });
+  }
+  return out.sort((x, y) => x.days - y.days);
+}
+function openDates() {
+  const list = upcomingDates();
+  const when = e => e.days === 0 ? '<b>Today</b>' : e.days === 1 ? '<b>Tomorrow</b>' : e.days < 7 ? `<b>In ${e.days} days</b>` : e.date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  const who = e => `<a data-id="${e.id}">${esc(fullName(P(e.id)))}</a>` + (e.id2 ? ` &amp; <a data-id="${e.id2}">${esc(fullName(P(e.id2)))}</a>` : '');
+  $('#datesOut').innerHTML = list.length
+    ? `<ul class="dl">${list.map(e => `<li class="${e.past ? 'past' : ''}"><span class="when">${when(e)}</span><span>${who(e)} — ${esc(e.what)}</span></li>`).join('')}</ul>`
+    : '<p class="muted">No full dates yet. Enter birth and wedding dates with a day and month (for example “12 Mar 1921”) and they’ll show up here.</p>';
+  $('#datesDlg').showModal();
+}
+// Clicking a name in a pop-up goes to that person.
+for (const s of ['#relDlg', '#datesDlg']) $(s).addEventListener('click', e => {
+  if (e.target.closest('[data-x="close"]')) return $(s).close();
+  const a = e.target.closest('[data-id]');
+  if (a) { $(s).close(); locate(a.dataset.id); }
+});
+
 // ---------- rendering ----------
 let scrollTo = null, shownIds = new Set(), treeW = 0, treeH = 0, orgX = 0, orgY = 0; // org = where the tree starts on the canvas
 let expanded = null, flash = null; // person whose "+ add" buttons are showing; person to pulse once
@@ -403,7 +716,7 @@ function renderList() {
     ? all.map(p => `<option value="${p.id}" ${p.id === db.root ? 'selected' : ''}>${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('')
     : '<option>— add someone first —</option>';
   $('#list').innerHTML = all
-    .filter(p => !q || [fullName(p), p.birthPlace, p.deathPlace].join(' ').toLowerCase().includes(q))
+    .filter(p => !q || [fullName(p), p.nickname, p.birthPlace, p.deathPlace, p.residence, p.occupation].join(' ').toLowerCase().includes(q))
     .map(p => `<li data-id="${p.id}" class="${p.id === db.focus ? 'on' : ''}"><span>${p.id === db.root ? '★ ' : ''}${esc(p.surname ? p.surname + ', ' + (p.given || '') : fullName(p))}</span><span class="yr">${esc(span(p))}</span></li>`)
     .join('') || `<li class="muted" style="cursor:default">${q ? 'No matches' : 'No one yet'}</li>`;
 }
@@ -414,7 +727,7 @@ function renderList() {
 // Father's side grows to the left, mother's side to the right.
 // Layout works in "blocks": a set of cards with x positions per generation level, plus the
 // left/right edge of each level (its contour), so neighbouring blocks can be packed tightly.
-const W = 150, H = 64, GAP = 14, SIB = 28, GRP = 40, CPL = 30, VGAP = 70, PAD = 56;
+const W = 160, H = 64, GAP = 14, SIB = 28, GRP = 40, CPL = 30, VGAP = 70, PAD = 56;
 let K = 0, noGhosts = false; // noGhosts: build the tree without the empty "+ Add" boxes
 const blk = () => ({ items: [], edges: [], couples: [], cont: {} });
 function grow(b, l, a, z) { const c = b.cont[l]; b.cont[l] = c ? [Math.min(c[0], a), Math.max(c[1], z)] : [a, z]; }
@@ -447,13 +760,13 @@ const rowGap = level => l => l === level ? SIB : GRP;
 // An unknown other parent gets an empty "+ Add partner" box.
 function descUnit(pid, level, tone, path, isRoot) {
   const b = blk(), next = new Set(path).add(pid);
-  const sfs = path.has(pid) || level < -60 ? [] : spouseFams(pid);
+  const sfs = path.has(pid) || level < -60 ? [] : sortFams(spouseFams(pid));
   const key = put(b, { id: pid, cls: isRoot ? 'line root' : tone, level, x: 0 });
   let x = W + GAP;
   const fams = [];
   for (const f of sfs) {
     const sp = partnerOf(f, pid);
-    if (sp) { const k = put(b, { id: sp, cls: 'spouse ' + tone, level, x }); b.couples.push([key, k]); fams.push({ f, top: [key, k], from: [key, k] }); }
+    if (sp) { const k = put(b, { id: sp, cls: 'spouse ' + tone, level, x }); b.couples.push([key, k, f.id]); fams.push({ f, top: [key, k], from: [key, k] }); }
     else if (noGhosts) { fams.push({ f, top: [key], from: [key] }); continue; }
     else { const k = put(b, { ghost: true, label: '+ Add partner', act: 'fillPartner', pid, fam: f.id, level, x }); fams.push({ f, top: [key, k], from: [key] }); }
     x += W + GAP;
@@ -492,7 +805,7 @@ function ghostUnit(role, pid, level) {
 // under the couple while nothing overlaps.
 function withParents(F, M, childKeys, anchorKey, level, path, ghostFor) {
   const [fa, mo] = F ? orderedSlots(F) : [null, null];
-  const unit = (pid, side, role) => pid ? lineBlock(pid, side, level + 1, path) : ghostFor && !noGhosts ? ghostUnit(role, ghostFor, level + 1) : null;
+  const unit = (pid, side, role) => pid ? lineBlock(pid, side, level + 1, path, F) : ghostFor && !noGhosts ? ghostUnit(role, ghostFor, level + 1) : null;
   const L = unit(fa, 'L', 'father'), R = unit(mo, 'R', 'mother');
   if (!L && !R) return M;
   const real = [L, R].filter(u => u && !u.ghost).map(u => u.key), ghosts = [L, R].filter(u => u && u.ghost).map(u => u.key);
@@ -511,7 +824,7 @@ function withParents(F, M, childKeys, anchorKey, level, path, ghostFor) {
     }
     m = Math.max(a, (fx + mx + r) / 2 - mc); r = Math.max(r, m + c);
     shift(M, m); shift(R.b, r);
-    if (real.length === 2) L.b.couples.push([L.key, R.key]);
+    if (real.length === 2) L.b.couples.push([L.key, R.key, F.id]);
     absorb(L.b, M); absorb(L.b, R.b);
     return L.b;
   }
@@ -524,15 +837,45 @@ function withParents(F, M, childKeys, anchorKey, level, path, ghostFor) {
 
 // One ancestor plus their siblings (with the siblings' families) at `level`, all ancestors above.
 // side 'L' puts the ancestor at the right end of the row (father's side), 'R' at the left end.
-function lineBlock(pid, side, level, path) {
+// An ancestor's other partnership (not the one leading to the main person): the partner with their children below.
+function partnerUnit(f, pid, level) {
+  const b = blk(), sp = partnerOf(f, pid);
+  const spKey = sp ? put(b, { id: sp, cls: 'spouse sib', level, x: 0 }) : null;
+  const kids = blk(), kidKeys = [];
+  for (const c of sortByBirth(f.children)) {
+    const u = descUnit(c, level - 1, 'sib', new Set([pid]));
+    append(kids, u.b, rowGap(level - 1)); kidKeys.push(u.key);
+  }
+  if (!isEmpty(kids)) { if (spKey) shift(kids, W / 2 - center(kids, level - 1)); absorb(b, kids); }
+  return { b, spKey, kidKeys, f };
+}
+// The ancestor's card plus any other partners on the outer side (father's to the left, mother's to the right).
+function lineCard(pid, side, level, via) {
+  const one = blk(), key = put(one, { id: pid, cls: 'line', level, x: 0 });
+  const others = chartMode === 'anc' ? [] : sortFams(spouseFams(pid)).filter(f => f !== via);
+  if (!others.length) return { b: one, key };
+  const gap = l => l === level ? GAP : GRP;
+  let acc = one;
+  const units = others.map(f => partnerUnit(f, pid, level));
+  if (side === 'L') { acc = blk(); for (const u of [...units].reverse()) append(acc, u.b, gap); append(acc, one, gap); }
+  else for (const u of units) append(acc, u.b, gap);
+  for (const u of units) {
+    if (u.spKey) acc.couples.push([key, u.spKey, u.f.id]);
+    const from = u.spKey ? [key, u.spKey] : [key];
+    u.kidKeys.forEach(k => acc.edges.push({ from, to: k }));
+  }
+  return { b: acc, key };
+}
+
+function lineBlock(pid, side, level, path, via) {
   const stop = path.has(pid) || level > 60; // guard against loops in bad data
   const F = stop ? null : parentFam(pid);
-  const sibs = F ? sortByBirth(F.children.filter(c => c !== pid)) : [];
+  const sibs = F && chartMode !== 'anc' ? sortByBirth(F.children.filter(c => c !== pid)) : [];
   const ids = side === 'L' ? [...sibs, pid] : [pid, ...sibs];
   const M = blk(), keys = [];
   let key;
   for (const id of ids) {
-    if (id === pid) { const one = blk(); key = put(one, { id, cls: 'line', level, x: 0 }); append(M, one, rowGap(level)); keys.push(key); }
+    if (id === pid) { const one = stop ? (() => { const o = blk(); key = put(o, { id, cls: 'line', level, x: 0 }); return { b: o, key }; })() : lineCard(pid, side, level, via); key = one.key; append(M, one.b, rowGap(level)); keys.push(key); }
     else { const u = descUnit(id, level, 'sib', new Set()); append(M, u.b, rowGap(level)); keys.push(u.key); }
   }
   return { b: withParents(F, M, keys, key, level, new Set(path).add(pid), stop ? null : pid), key };
@@ -540,9 +883,16 @@ function lineBlock(pid, side, level, path) {
 
 // The main person's generation (siblings and their families, plus the main person's own family
 // below them), with all the ancestry above.
+// chartMode: 'all' = whole family, 'anc' = direct ancestors only, 'desc' = descendants only.
+let chartMode = 'all';
 function rootBlock(root) {
+  if (chartMode === 'desc') return descUnit(root, 0, 'kid', new Set(), true).b;
   const F = parentFam(root), M = blk(), keys = [];
   let rk;
+  if (chartMode === 'anc') {
+    rk = put(M, { id: root, cls: 'line root', level: 0, x: 0 });
+    return withParents(F, M, [rk], rk, 0, new Set([root]), root);
+  }
   for (const id of F ? sortByBirth(F.children) : [root]) {
     const u = id === root ? descUnit(root, 0, 'kid', new Set(), true) : descUnit(id, 0, 'sib', new Set([root]));
     if (id === root) rk = u.key;
@@ -594,14 +944,18 @@ function renderTree() {
     const isMain = it.key === mainKey[it.id];
     const inlaw = /spouse/.test(it.cls) && !blood.has(it.id);
     if (inlaw) tip = ['Married into the family', tip].filter(Boolean).join(' · ');
-    return `<div class="card s-${p.sex || 'U'} ${it.cls}${inlaw ? ' inlaw' : ''}${it.id === db.focus ? ' focus' : ''}${isMain && it.id === flash ? ' located' : ''}" style="${st}" data-id="${it.id}"${isMain ? ' data-main' : ''} title="${esc(tip)}"><div class="nm">${it.id === root ? '★ ' : ''}${esc(fullName(p))}</div><div class="yr">${esc(span(p))}</div></div>`;
+    if (p.nickname) tip = [`Also known as ${p.nickname}`, tip].filter(Boolean).join(' · ');
+    const ph = photos[it.id];
+    return `<div class="card s-${p.sex || 'U'} ${it.cls}${inlaw ? ' inlaw' : ''}${ph ? ' hasph' : ''}${it.id === db.focus ? ' focus' : ''}${isMain && it.id === flash ? ' located' : ''}" style="${st}" data-id="${it.id}"${isMain ? ' data-main' : ''} title="${esc(tip)}">${ph ? `<img class="ph" src="${ph}" alt="">` : ''}<div class="tx"><div class="nm">${it.id === root ? '★ ' : ''}${esc(fullName(p))}</div><div class="yr">${esc(span(p))}</div></div></div>`;
   }).join('') + addonsHtml(expanded && mainKey[expanded] ? itemAt(b, mainKey[expanded]) : null, pos);
   flash = null;
 
   // Connecting lines, computed from the layout
-  const { d, dg } = buildLines(b, pos);
+  const { d, dg, de, marks } = buildLines(b, pos);
   svg.setAttribute('width', cw); svg.setAttribute('height', ch);
-  svg.innerHTML = `<path d="${d}"/><path class="g" d="${dg}"/>`;
+  svg.innerHTML = `<path d="${d}"/><path class="e" d="${de}"/><path class="g" d="${dg}"/>`;
+  rowsEl.insertAdjacentHTML('beforeend', marks.map(m =>
+    `<span class="cpl${relDashed(m.f.type) ? ' ended' : ''}" style="left:${m.x}px;top:${m.y}px" title="${esc(relSummary(m.f))}">${esc(relSymbol(m.f.type))}</span>`).join(''));
 
   if (scrollTo) { const id = scrollTo; scrollTo = null; scrollToCard(id); }
 }
@@ -612,17 +966,21 @@ const bloodIds = b => new Set(b.items.filter(it => !it.ghost && !/spouse/.test(i
 // Connecting lines for a laid-out tree: d = solid lines, dg = dashed lines to empty boxes.
 function buildLines(b, pos) {
   const box = k => { const p = pos[k]; return { l: p.x, r: p.x + W, cx: p.x + W / 2, t: p.y, b: p.y + H, cy: p.y + H / 2 }; };
-  let d = '', dg = '';
+  let d = '', dg = '', de = '';
+  const marks = []; // relationship symbols (⚭ married, ⚮ divorced/separated, ⚯ other) on couple lines
   // If other cards sit between two partners (e.g. cousins), the couple line goes under the cards.
   const byLevel = {};
   for (const it of b.items) (byLevel[it.level] ||= []).push(pos[it.key].x);
   const coupleKey = (a, c) => [a, c].sort().join('|'), under = new Set();
-  for (const [a, c] of b.couples) {
-    const [x, y] = [box(a), box(c)].sort((m, n) => m.l - n.l);
+  for (const [a, c, fid] of b.couples) {
+    const [x, y] = [box(a), box(c)].sort((m, n) => m.l - n.l), f = db.families[fid];
+    let seg, mx, my;
     if (byLevel[itemAt(b, a).level].some(px => px > x.l + 1 && px < y.l - 1)) {
       under.add(coupleKey(a, c));
-      d += `M${x.r - 24} ${x.b}V${x.b + 12}H${y.l + 24}V${y.b}`;
-    } else d += `M${x.r} ${x.cy}H${y.l}`;
+      seg = `M${x.r - 24} ${x.b}V${x.b + 12}H${y.l + 24}V${y.b}`; mx = (x.r + y.l) / 2; my = x.b + 12;
+    } else { seg = `M${x.r} ${x.cy}H${y.l}`; mx = (x.r + y.l) / 2; my = x.cy; }
+    if (f && relDashed(f.type)) de += seg; else d += seg;
+    if (f && relSymbol(f.type)) marks.push({ x: mx, y: my, f });
   }
   for (const e of b.edges) {
     const ps = e.from.map(box), c = box(e.to);
@@ -631,7 +989,7 @@ function buildLines(b, pos) {
     const seg = `M${sx} ${sy}V${c.t - VGAP / 2}H${c.cx}V${c.t}`;
     if (e.ghost) dg += seg; else d += seg;
   }
-  return { d, dg };
+  return { d, dg, de, marks };
 }
 
 // Small "+ add" buttons around the located person for links that are missing.
@@ -676,17 +1034,17 @@ window.addEventListener('resize', () => renderTree());
 // ---------- full tree picture ----------
 // The whole tree as one SVG picture: real people only, bold connection lines, print-friendly colours.
 let fullPic = null;
-function fullTreeSvg() {
-  K = 0; noGhosts = true;
+function fullTreeSvg(type = 'all', who = db.root, priv = false) {
+  K = 0; noGhosts = true; chartMode = type;
   let b;
-  try { b = rootBlock(db.root); } finally { noGhosts = false; }
+  try { b = rootBlock(who); } finally { noGhosts = false; chartMode = 'all'; }
   const M = 48, TITLE = 76, LH = 15;
   const xs = b.items.map(i => i.x), minX = Math.min(...xs), w0 = Math.max(...xs) + W - minX;
   const lv = b.items.map(i => i.level), top = Math.max(...lv), bot = Math.min(...lv);
   const pos = {};
   for (const it of b.items) pos[it.key] = { x: it.x - minX + M, y: (top - it.level) * (H + VGAP) + M + TITLE };
   const width = Math.max(w0 + 2 * M, 560), height = (top - bot) * (H + VGAP) + H + 2 * M + TITLE;
-  const { d } = buildLines(b, pos), blood = bloodIds(b);
+  const { d, de, marks } = buildLines(b, pos), blood = bloodIds(b);
 
   const ctx = document.createElement('canvas').getContext('2d');
   const FONT = 'system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -702,38 +1060,52 @@ function fullTreeSvg() {
     return out.length > 2 ? [out[0], fit(out.slice(1).join(' '), font, max)] : out.map(l => fit(l, font, max));
   };
   const C = { M: ['#dfe9f3', '#8eaacb'], F: ['#f6e1e6', '#cf97a9'], U: ['#ece8e1', '#bfb19c'] };
-  const cards = b.items.map(it => {
+  const cards = b.items.map((it, i) => {
     const p = P(it.id), sx = p.sex || 'U', { x, y } = pos[it.key];
-    const inlaw = /spouse/.test(it.cls) && !blood.has(it.id), isRoot = it.id === db.root, faded = /sib/.test(it.cls);
+    const inlaw = /spouse/.test(it.cls) && !blood.has(it.id), isRoot = it.id === who, faded = /sib/.test(it.cls);
+    const hidden = priv && isLiving(p), ph = hidden ? null : photos[it.id];
+    const tx0 = ph ? x + 58 : x + 10, tw = ph ? W - 66 : W - 20, cx = tx0 + tw / 2; // text area
     const nameFont = `${inlaw ? 'italic 500' : '600'} 13px ${FONT}`;
-    const lines = wrap((isRoot ? '★ ' : '') + fullName(p), nameFont, W - 20), yr = span(p);
+    const lines = wrap((isRoot ? '★ ' : '') + fullName(p), nameFont, tw), yr = hidden ? 'Living' : span(p);
     const n = lines.length + (yr ? 1 : 0);
     let ty = y + H / 2 - (n * LH) / 2 + 11;
     let g = `<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="10" fill="${inlaw ? '#ffffff' : C[sx][0]}" stroke="${isRoot ? '#8a5a2b' : C[sx][1]}" stroke-width="${isRoot ? 3 : 1.5}"/>`;
     if (inlaw) g += `<rect x="${x + 1.5}" y="${y + 6}" width="6" height="${H - 12}" rx="3" fill="${C[sx][1]}"/>`;
-    for (const l of lines) { g += `<text x="${x + W / 2}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="13" font-weight="${inlaw ? 500 : 600}"${inlaw ? ' font-style="italic"' : ''} fill="${faded ? '#5c5249' : '#2b2622'}">${esc(l)}</text>`; ty += LH; }
-    if (yr) g += `<text x="${x + W / 2}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="11" fill="#7a6f64">${esc(yr)}</text>`;
+    if (ph) g += `<clipPath id="cp${i}"><circle cx="${x + 32}" cy="${y + H / 2}" r="22"/></clipPath><image href="${ph}" x="${x + 10}" y="${y + H / 2 - 22}" width="44" height="44" preserveAspectRatio="xMidYMid slice" clip-path="url(#cp${i})"/><circle cx="${x + 32}" cy="${y + H / 2}" r="22" fill="none" stroke="${C[sx][1]}"/>`;
+    for (const l of lines) { g += `<text x="${cx}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="13" font-weight="${inlaw ? 500 : 600}"${inlaw ? ' font-style="italic"' : ''} fill="${faded ? '#5c5249' : '#2b2622'}">${esc(l)}</text>`; ty += LH; }
+    if (yr) g += `<text x="${cx}" y="${ty}" text-anchor="middle" font-family='${FONT}' font-size="11" fill="#7a6f64">${esc(yr)}</text>`;
     return g;
   }).join('');
-  const people = new Set(b.items.map(i => i.id)).size;
+  const sym = marks.map(m => `<circle cx="${m.x}" cy="${m.y}" r="10" fill="#fffdf8" stroke="#4a3b2e" stroke-width="1.5"/><text x="${m.x}" y="${m.y + 4.5}" text-anchor="middle" font-family='${FONT}' font-size="12" font-weight="700" fill="${relDashed(m.f.type) ? '#b3261e' : '#2b2622'}">${esc(relSymbol(m.f.type))}</text>`).join('');
+  const used = [...new Set(marks.map(m => m.f.type))].filter(t => SYMBOL_KEY[t]);
+  const legend = used.length ? ' · ' + used.map(t => `${SYMBOLS[t]} ${SYMBOL_KEY[t]}`).join('   ') + (marks.some(m => relDashed(m.f.type)) ? '   - - ended' : '') : '';
+  const people = new Set(b.items.map(i => i.id)).size, gens = top - bot + 1;
+  const title = { all: 'Family tree of ', anc: 'Ancestors of ', desc: 'Descendants of ' }[type] + fullName(P(who));
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
     + `<rect width="100%" height="100%" fill="#fffdf8"/>`
-    + `<text x="${M}" y="${M + 18}" font-family="Georgia,'Times New Roman',serif" font-size="26" font-weight="600" fill="#2b2622">Family tree of ${esc(fullName(P(db.root)))}</text>`
-    + `<text x="${M}" y="${M + 42}" font-family='${FONT}' font-size="13" fill="#7a6f64">${people} people · ${top} generation${top === 1 ? '' : 's'} of ancestors · ${new Date().toLocaleDateString()}</text>`
+    + `<text x="${M}" y="${M + 18}" font-family="Georgia,'Times New Roman',serif" font-size="26" font-weight="600" fill="#2b2622">${esc(title)}</text>`
+    + `<text x="${M}" y="${M + 42}" font-family='${FONT}' font-size="13" fill="#7a6f64">${people} ${people === 1 ? 'person' : 'people'} · ${gens} generation${gens === 1 ? '' : 's'} · ${new Date().toLocaleDateString()}${esc(legend)}</text>`
     + `<path d="${d}" fill="none" stroke="#4a3b2e" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`
-    + cards + `</svg>`;
-  return { svg, width, height };
+    + `<path d="${de}" fill="none" stroke="#4a3b2e" stroke-width="3" stroke-dasharray="8 6" stroke-linecap="round"/>`
+    + cards + sym + `</svg>`;
+  return { svg, width, height, title };
 }
 
 function openFullTree() {
   if (!P(db.root)) return alert('Your tree is empty.');
-  fullPic = fullTreeSvg();
+  $('#chartWho').innerHTML = sortedPeople().map(p => `<option value="${p.id}">${esc(fullName(p))}${span(p) ? ' (' + esc(span(p)) + ')' : ''}</option>`).join('');
+  $('#chartWho').value = db.focus || db.root;
+  drawChart();
+  $('#full').showModal();
+}
+function drawChart() {
+  fullPic = fullTreeSvg($('#chartType').value, $('#chartWho').value || db.root, $('#chartPriv').checked);
   $('#fullView').classList.remove('actual');
   $('#full [data-x="size"]').textContent = 'Actual size';
   $('#fullView').innerHTML = fullPic.svg;
-  $('#full').showModal();
 }
-const picName = ext => `family-tree-${fullName(P(db.root)).replace(/[^\w-]+/g, '-')}-${today()}.${ext}`;
+['#chartType', '#chartWho', '#chartPriv'].forEach(s => $(s).addEventListener('change', drawChart));
+const picName = ext => `${(fullPic ? fullPic.title : 'family-tree').replace(/[\\/:*?"<>|\s]+/g, '-')}-${today()}.${ext}`;
 function savePng() {
   const { svg, width, height } = fullPic;
   const scale = Math.min(2, 16000 / width, 16000 / height, Math.sqrt(120e6 / (width * height))); // stay within browser canvas limits
@@ -792,33 +1164,63 @@ function renderPanel() {
   const p = P(db.focus), el = $('#panel');
   if (!p) { el.innerHTML = '<p class="muted">Select or add a person to see their details here.</p>'; return; }
   const pf = parentFam(p.id), sfs = spouseFams(p.id);
-  const rel = (id, unlinkSpec) => `<div class="rel"><a data-id="${id}">${esc(fullName(P(id)))}</a><span class="yr">${esc(span(P(id)))}</span>${unlinkSpec ? `<button class="x" title="Remove this link (does not delete the person)" data-unlink="${unlinkSpec}">✕</button>` : ''}</div>`;
+  const rel = (id, unlinkSpec, note) => `<div class="rel"><a data-id="${id}">${esc(fullName(P(id)))}${note ? ` <span class="yr">· ${esc(note)}</span>` : ''}</a><span class="yr">${esc(span(P(id)))}</span>${unlinkSpec ? `<button class="x" title="Remove this link (does not delete the person)" data-unlink="${unlinkSpec}">✕</button>` : ''}</div>`;
   const none = '<div class="none">None listed</div>';
   const fld = (f, label, ph = '') => `<label class="fld"><span>${label}</span><input data-f="${f}" value="${esc(p[f])}" placeholder="${esc(ph)}"></label>`;
 
   const parents = pf ? orderedSlots(pf).filter(Boolean).map(x => rel(x, `parent:${pf.id}:${x}`)).join('') : '';
-  const sibs = pf ? sortByBirth(pf.children.filter(c => c !== p.id)).map(x => rel(x)).join('') : '';
-  const spouses = sfs.filter(f => partnerOf(f, p.id)).map(f => rel(partnerOf(f, p.id), `spouse:${f.id}`)).join('');
+  // Full siblings share both parents; half-siblings come from a parent's other partnerships.
+  const halfIds = pf ? [pf.a, pf.b].filter(Boolean).flatMap(x => spouseFams(x).filter(f => f !== pf).flatMap(f => f.children)) : [];
+  const sibs = pf ? [...sortByBirth(pf.children.filter(c => c !== p.id)).map(x => rel(x)),
+    ...sortByBirth([...new Set(halfIds)].filter(c => c !== p.id)).map(x => rel(x, null, 'half'))].join('') : '';
+  // Each partnership: who, what kind of relationship, and when.
+  const spouses = sortFams(sfs).map(f => {
+    const sp = partnerOf(f, p.id), nk = f.children.length;
+    const head = sp ? rel(sp, `spouse:${f.id}`)
+      : `<div class="rel"><span class="none" style="flex:1">Unknown partner · ${nk} child${nk === 1 ? '' : 'ren'}</span><button class="x" data-act="fillPartner" data-fam="${f.id}" data-pid="${p.id}" title="Add the other parent">+ add</button></div>`;
+    const t = f.type || '';
+    const ph1 = t === 'engaged' ? 'Engaged on' : ['married', 'divorced', 'separated', ''].includes(t) ? 'Married on' : 'From';
+    const ph2 = t === 'divorced' ? 'Divorced on' : t === 'separated' ? 'Separated on' : 'Until';
+    return `<div class="pship">${head}<div class="three">
+      <select data-fam="${f.id}" data-ff="type" title="Kind of relationship">${REL_TYPES.map(([v, l]) => `<option value="${v}" ${t === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <input data-fam="${f.id}" data-ff="start" value="${esc(f.start || '')}" placeholder="${ph1}" title="${ph1}">
+      <input data-fam="${f.id}" data-ff="end" value="${esc(f.end || '')}" placeholder="${ph2}" title="${ph2}"></div></div>`;
+  }).join('');
   const kids = sfs.flatMap(f => f.children.map(c => [f, c])).sort((x, y) => (yearOf(P(x[1]).birthDate) ?? 1e9) - (yearOf(P(y[1]).birthDate) ?? 1e9))
-    .map(([f, c]) => rel(c, `child:${f.id}:${c}`)).join('');
+    .map(([f, c]) => {
+      const other = partnerOf(f, p.id);
+      return rel(c, `child:${f.id}:${c}`, sfs.length > 1 ? (other ? 'with ' + givenOf(P(other)) : 'other parent unknown') : '');
+    }).join('');
 
   const rootCtl = p.id === db.root
     ? '<div class="rootnote">★ Main person — the tree is drawn from them</div>'
     : '<button class="mk" data-act="makeRoot">★ Make main person</button>';
   const hint = shownIds.has(p.id) ? '' : `<p class="hint">Not shown in ${esc(fullName(P(db.root)))}’s tree. The tree shows their ancestors with their siblings, plus their partners and children.</p>`;
-  el.innerHTML = `<h2 id="pName">${esc(fullName(p))}</h2>${rootCtl}${hint}
+  const ph = photos[p.id];
+  const photo = `<div class="photo">${ph ? `<img src="${ph}" alt="Photo of ${esc(fullName(p))}">` : `<div class="ph0">${esc((p.given || p.surname || '?').trim()[0] || '?')}</div>`}
+    <div class="btns"><button data-act="photo">${ph ? 'Change photo' : 'Add photo'}</button>${ph ? '<button class="x" data-act="rmPhoto">Remove photo</button>' : ''}</div></div>`;
+  let relto = '';
+  if (p.id !== db.root && P(db.root)) {
+    const r = relInfo(db.root, p.id), rn = `<a data-id="${db.root}">${esc(fullName(P(db.root)))}</a>`;
+    relto = `<div class="relto">${r ? `${rn}’s ${esc(r.text)}` : `No known relation to ${rn}`}</div>`;
+  }
+  const dead = isDead(p);
+  el.innerHTML = `<h2 id="pName">${esc(fullName(p))}</h2>${relto}${rootCtl}${hint}${photo}
     <div class="two">${fld('given', 'Given names')}${fld('surname', 'Surname (at birth)')}</div>
-    <label class="fld"><span>Sex</span><select data-f="sex">${[['', 'Unknown'], ['M', 'Male'], ['F', 'Female']].map(([v, l]) => `<option value="${v}" ${p.sex === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <div class="two">${fld('nickname', 'Also known as', 'nickname, married name')}<label class="fld"><span>Sex</span><select data-f="sex">${[['', 'Unknown'], ['M', 'Male'], ['F', 'Female']].map(([v, l]) => `<option value="${v}" ${p.sex === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
     <div class="two">${fld('birthDate', 'Born', 'e.g. 12 Mar 1921')}${fld('birthPlace', 'Birthplace')}</div>
-    <div class="two">${fld('deathDate', 'Died', 'leave blank if living')}${fld('deathPlace', 'Place of death')}</div>
-    <label class="fld"><span>Notes &amp; stories</span><textarea data-f="notes" rows="5" placeholder="Occupation, where they lived, memories, sources…">${esc(p.notes)}</textarea></label>
+    <label class="chk" title="Tick if they have passed away but the date is unknown"><input type="checkbox" data-f="deceased" ${dead ? 'checked' : ''} ${dead && !p.deceased ? 'disabled' : ''}> Deceased</label>
+    ${dead ? `<div class="two">${fld('deathDate', 'Died', 'e.g. 3 Jun 1990')}${fld('deathPlace', 'Place of death')}</div>${fld('burialPlace', 'Buried in')}` : ''}
+    <div class="two">${fld('occupation', 'Occupation')}${fld('residence', 'Lived in')}</div>
+    <label class="fld"><span>Notes &amp; stories</span><textarea data-f="notes" rows="5" placeholder="Memories, stories, life events…">${esc(p.notes)}</textarea></label>
+    <label class="fld"><span>Sources</span><textarea data-f="sources" rows="2" placeholder="Where this came from: a birth certificate, Grandma’s letter, a census record…">${esc(p.sources || '')}</textarea></label>
     <h3>Parents</h3>${parents || none}
     <h3>Partners</h3>${spouses || none}
     <h3>Children</h3>${kids || none}
     <h3>Siblings</h3>${sibs || none}
     <div class="adds">
       <button data-act="addParent" data-role="parent">+ Parent</button>
-      <button data-act="addSpouse">+ Partner</button>
+      <button data-act="addSpouse">${spouses ? '+ Another partner' : '+ Partner'}</button>
       <button data-act="addChild">+ Child</button>
       <button data-act="addSibling">+ Sibling</button>
     </div>
@@ -826,13 +1228,43 @@ function renderPanel() {
 }
 
 // Live edits from the details panel
-$('#panel').addEventListener('input', e => {
-  const f = e.target.dataset.f, p = P(db.focus);
-  if (!f || !p) return;
-  p[f] = e.target.value;
+function onPanelEdit(e) {
+  const t = e.target;
+  if (t.dataset.ff) { // a partnership field
+    const f = db.families[t.dataset.fam];
+    if (!f || (f[t.dataset.ff] || '') === t.value) return;
+    trackEdit(f.id + t.dataset.ff);
+    f[t.dataset.ff] = t.value; save(); renderTree();
+    if (t.tagName === 'SELECT') renderPanel(); // updates the date hints
+    return;
+  }
+  const k = t.dataset.f, p = P(db.focus);
+  if (!k || !p) return;
+  const v = t.type === 'checkbox' ? t.checked : t.value;
+  if ((p[k] ?? '') === v) return;
+  trackEdit(p.id + k);
+  p[k] = v;
   save();
   $('#pName').textContent = fullName(p);
   renderList(); renderTree();
+  if (k === 'deceased') renderPanel(); // show or hide the death fields
+}
+$('#panel').addEventListener('input', onPanelEdit);
+$('#panel').addEventListener('change', onPanelEdit);
+$('#panel').addEventListener('focusout', () => { editKey = null; });
+
+$('#photoFile').addEventListener('change', async e => {
+  const file = e.target.files[0], id = db.focus; e.target.value = '';
+  if (!file || !P(id)) return;
+  try { await setPhoto(id, await shrinkImage(file)); }
+  catch (err) { alert('Could not read that picture. Try a JPEG or PNG file.'); }
+});
+
+document.addEventListener('keydown', e => {
+  if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+  if (e.target.closest('input,textarea,select') || document.querySelector('dialog[open]')) return; // let fields undo their own typing
+  e.preventDefault();
+  e.shiftKey ? redo() : undo();
 });
 
 // ---------- clicks ----------
@@ -864,6 +1296,12 @@ document.addEventListener('click', e => {
     case 'addChild': return addChild(who, ds.fam);
     case 'addSibling': return addSibling(who);
     case 'delete': return deletePerson(db.focus);
+    case 'undo': return undo();
+    case 'redo': return redo();
+    case 'relFind': return openRelFinder();
+    case 'dates': return openDates();
+    case 'photo': return $('#photoFile').click();
+    case 'rmPhoto': return confirm('Remove this photo?') && setPhoto(db.focus, null);
   }
 });
 $('#search').addEventListener('input', renderList);
@@ -880,11 +1318,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 function exportJson() {
   if (!Object.keys(db.people).length) return alert('Your tree is empty.');
   db.exportedAt = Date.now(); save();
-  download(`family-tree-${today()}.json`, JSON.stringify({ app: 'family-tree', version: 1, people: db.people, families: db.families, root: db.root, focus: db.focus }, null, 2), 'application/json');
+  const pics = Object.fromEntries(Object.entries(photos).filter(([id]) => P(id)));
+  download(`family-tree-${today()}.json`, JSON.stringify({ app: 'family-tree', version: 2, people: db.people, families: db.families, root: db.root, focus: db.focus, photos: pics }, null, 2), 'application/json');
 }
 
 function exportGedcom() {
   if (!Object.keys(db.people).length) return alert('Your tree is empty.');
+  const priv = Object.values(db.people).some(isLiving) && confirm('Leave out the details of living people (birth dates, places, notes)?\n\nOK — yes, for sharing with others\nCancel — no, export everything (for your own use)');
   const iid = {}, fid = {};
   Object.keys(db.people).forEach((id, i) => iid[id] = `@I${i + 1}@`);
   Object.keys(db.families).forEach((id, i) => fid[id] = `@F${i + 1}@`);
@@ -895,15 +1335,22 @@ function exportGedcom() {
     out.push(`0 ${iid[p.id]} INDI`, `1 NAME ${t(p.given || '')} /${t(p.surname || '')}/`);
     if (p.given) out.push(`2 GIVN ${t(p.given)}`);
     if (p.surname) out.push(`2 SURN ${t(p.surname)}`);
+    if (p.nickname) out.push(`2 NICK ${t(p.nickname)}`);
     if (p.sex) out.push(`1 SEX ${p.sex}`);
+    const hide = priv && isLiving(p);
     for (const [tag, pre] of [['BIRT', 'birth'], ['DEAT', 'death']]) {
+      if (hide) break;
       if (p[pre + 'Date'] || p[pre + 'Place']) {
         out.push(`1 ${tag}`);
         if (p[pre + 'Date']) out.push(`2 DATE ${t(p[pre + 'Date'])}`);
         if (p[pre + 'Place']) out.push(`2 PLAC ${t(p[pre + 'Place'])}`);
-      }
+      } else if (tag === 'DEAT' && p.deceased) out.push('1 DEAT Y');
     }
-    if (p.notes) note(1, p.notes);
+    if (p.burialPlace) out.push('1 BURI', `2 PLAC ${t(p.burialPlace)}`);
+    if (!hide && p.occupation) out.push(`1 OCCU ${t(p.occupation)}`);
+    if (!hide && p.residence) out.push('1 RESI', `2 PLAC ${t(p.residence)}`);
+    if (!hide && p.notes) note(1, p.notes);
+    if (!hide && p.sources) p.sources.split(/\r?\n/).forEach((ln, i) => out.push(i ? `2 CONT ${t(ln)}` : `1 SOUR ${t(ln)}`));
     const pf = parentFam(p.id);
     if (pf) out.push(`1 FAMC ${fid[pf.id]}`);
     spouseFams(p.id).forEach(f => out.push(`1 FAMS ${fid[f.id]}`));
@@ -915,6 +1362,12 @@ function exportGedcom() {
     if (h) out.push(`1 HUSB ${iid[h]}`);
     if (w) out.push(`1 WIFE ${iid[w]}`);
     f.children.forEach(c => out.push(`1 CHIL ${iid[c]}`));
+    const ty = f.type || '';
+    if (['married', 'divorced', 'separated'].includes(ty) || (!ty && f.start)) { out.push('1 MARR'); if (f.start) out.push(`2 DATE ${t(f.start)}`); }
+    if (ty === 'engaged') { out.push('1 ENGA'); if (f.start) out.push(`2 DATE ${t(f.start)}`); }
+    if (ty === 'divorced') { out.push('1 DIV'); if (f.end) out.push(`2 DATE ${t(f.end)}`); }
+    if (ty && ty !== 'married' && ty !== 'divorced' && ty !== 'engaged') { out.push(`1 _TYPE ${ty}`); if (f.start && ty !== 'separated') out.push(`1 _START ${t(f.start)}`); }
+    if (f.end && ty !== 'divorced') out.push(`1 _END ${t(f.end)}`);
   }
   out.push('0 TRLR');
   download(`family-tree-${today()}.ged`, out.join('\n') + '\n', 'text/plain');
@@ -930,8 +1383,8 @@ function parseGedcom(text) {
     const lv = +m[1], xref = m[2], tag = m[3].toUpperCase(), val = m[4] || '';
     if (lv === 0) {
       l1 = null;
-      if (tag === 'INDI') { rec = { t: 'I', p: { given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '' } }; indi[xref] = rec.p; }
-      else if (tag === 'FAM') { rec = { t: 'F', f: { h: null, w: null, c: [] } }; fam[xref] = rec.f; }
+      if (tag === 'INDI') { rec = { t: 'I', p: { given: '', surname: '', sex: '', birthDate: '', birthPlace: '', deathDate: '', deathPlace: '', notes: '', nickname: '', occupation: '', residence: '', burialPlace: '', sources: '', deceased: false } }; indi[xref] = rec.p; }
+      else if (tag === 'FAM') { rec = { t: 'F', f: { h: null, w: null, c: [], type: '', start: '', end: '' } }; fam[xref] = rec.f; }
       else rec = null;
       continue;
     }
@@ -947,13 +1400,29 @@ function parseGedcom(text) {
           p.surname = un(nm[2].trim());
         } else if (tag === 'SEX') { const s = val.trim().toUpperCase()[0]; p.sex = s === 'M' || s === 'F' ? s : ''; }
         else if (tag === 'NOTE' && !val.startsWith('@')) p.notes += (p.notes ? '\n' : '') + un(val);
+        else if (tag === 'OCCU' && !p.occupation) p.occupation = un(val);
+        else if (tag === 'SOUR' && !val.startsWith('@') && val) p.sources += (p.sources ? '\n' : '') + un(val);
+        else if (tag === 'DEAT' || tag === 'BURI') p.deceased = true;
+        else if (tag === 'RESI' && val && !p.residence) p.residence = un(val);
       } else {
         const f = rec.f, v = val.trim();
         if (tag === 'HUSB') f.h = v; else if (tag === 'WIFE') f.w = v; else if (tag === 'CHIL') f.c.push(v);
+        else if (tag === 'MARR') f.type ||= 'married';
+        else if (tag === 'ENGA') f.type ||= 'engaged';
+        else if (tag === 'DIV') f.type = 'divorced';
+        else if (tag === '_TYPE' && REL_TYPES.some(r => r[0] === v)) f._t = v;
+        else if (tag === '_START') f.start = un(v);
+        else if (tag === '_END') f.end = un(v);
       }
+    } else if (lv === 2 && rec.t === 'F') {
+      const f = rec.f;
+      if (tag === 'DATE' && (l1 === 'MARR' || l1 === 'ENGA') && !f.start) f.start = un(val);
+      if (tag === 'DATE' && l1 === 'DIV' && !f.end) f.end = un(val);
     } else if (lv === 2 && rec.t === 'I') {
       const p = rec.p;
-      if (l1 === 'NAME') { if (tag === 'GIVN' && !p.given) p.given = un(val); if (tag === 'SURN' && !p.surname) p.surname = un(val); }
+      if (l1 === 'NAME') { if (tag === 'GIVN' && !p.given) p.given = un(val); if (tag === 'SURN' && !p.surname) p.surname = un(val); if (tag === 'NICK' && !p.nickname) p.nickname = un(val); }
+      else if ((l1 === 'RESI' || l1 === 'BURI') && tag === 'PLAC') { const k = l1 === 'RESI' ? 'residence' : 'burialPlace'; if (!p[k]) p[k] = un(val); }
+      else if (l1 === 'SOUR' && (tag === 'CONT' || tag === 'CONC')) p.sources += (tag === 'CONT' ? '\n' : '') + un(val);
       else if (l1 === 'BIRT' || l1 === 'DEAT') {
         const pre = l1 === 'BIRT' ? 'birth' : 'death';
         if (tag === 'DATE' && !p[pre + 'Date']) p[pre + 'Date'] = un(val);
@@ -965,7 +1434,7 @@ function parseGedcom(text) {
   for (const [x, p] of Object.entries(indi)) { delete p._named; p.id = uid('p'); map[x] = p.id; people[p.id] = p; }
   for (const f of Object.values(fam)) {
     const id = uid('f');
-    families[id] = { id, a: map[f.h] || null, b: map[f.w] || null, children: f.c.map(c => map[c]).filter(Boolean) };
+    families[id] = { id, a: map[f.h] || null, b: map[f.w] || null, children: f.c.map(c => map[c]).filter(Boolean), type: f._t || f.type, start: f.start, end: f.end };
   }
   return { people, families };
 }
@@ -982,13 +1451,17 @@ $('#file').addEventListener('change', async e => {
   const n = Object.keys(data.people).length, cur = Object.keys(db.people).length;
   if (!n) return alert('No people were found in that file.');
   if (cur && !confirm(`Replace your current tree (${cur} people) with the ${n} people in “${file.name}”?\n\nTip: click Cancel and “Save backup” first if you're not sure.`)) return;
+  pushUndo();
   db.people = data.people; db.families = data.families;
   db.root = P(data.root) ? data.root : P(data.focus) ? data.focus : null;
   db.focus = db.root;
-  normalize(); scrollTo = db.root; save(); renderAll();
+  normalize(); scrollTo = db.root; save();
+  await replacePhotos(data.photos || {});
+  renderAll();
 });
 
-normalize(); renderStatus(); scrollTo = db.root; renderAll();
+normalize(); renderStatus(); scrollTo = db.root; renderAll(); updUndo();
+loadPhotos().then(() => { if (Object.keys(photos).length) { renderTree(); renderPanel(); } });
 </script>
 </body>
 </html>
